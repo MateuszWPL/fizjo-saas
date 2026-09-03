@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { PatientsService } from '../patients/patients.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { VisitsService } from '../visits/visits.service.js';
 import type { UpsertBodyMarkerDto } from './dto/upsert-body-marker.dto.js';
@@ -8,7 +9,24 @@ export class BodyMarkersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly visits: VisitsService,
+    private readonly patients: PatientsService,
   ) {}
+
+  async painHistory(userId: string, patientId: string) {
+    const patient = await this.patients.get(userId, patientId);
+    return this.prisma.visit.findMany({
+      where: { patientId: patient.id, bodyMarkers: { some: {} } },
+      orderBy: { visitDate: 'asc' },
+      select: {
+        id: true,
+        visitDate: true,
+        bodyMarkers: {
+          select: { muscleGroup: true, painLevel: true, painType: true },
+          orderBy: { muscleGroup: 'asc' },
+        },
+      },
+    });
+  }
 
   async listForVisit(userId: string, visitId: string) {
     await this.visits.get(userId, visitId);

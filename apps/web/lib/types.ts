@@ -6,6 +6,15 @@ export interface BodyMarker {
   note: string | null;
 }
 
+export interface Exercise {
+  id: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  defaultSets: number | null;
+  defaultReps: number | null;
+}
+
 export interface PainHistoryVisit {
   id: string;
   visitDate: string;

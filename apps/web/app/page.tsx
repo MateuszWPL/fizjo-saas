@@ -81,6 +81,11 @@ export default function HomePage() {
           </Link>
         </li>
         <li>
+          <Link href="/exercises" className="text-stone-800 underline hover:text-stone-600">
+            Ćwiczenia
+          </Link>
+        </li>
+        <li>
           <Link href="/body-map" className="text-stone-800 underline hover:text-stone-600">
             Mapa ciała
           </Link>

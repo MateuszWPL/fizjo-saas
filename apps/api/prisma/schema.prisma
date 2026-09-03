@@ -57,20 +57,38 @@ model Patient {
 }
 
 model Visit {
-  id              String    @id @default(uuid()) @db.Uuid
-  patientId       String    @map("patient_id") @db.Uuid
-  therapistId     String    @map("therapist_id") @db.Uuid
-  visitDate       DateTime  @map("visit_date") @db.Date
+  id              String       @id @default(uuid()) @db.Uuid
+  patientId       String       @map("patient_id") @db.Uuid
+  therapistId     String       @map("therapist_id") @db.Uuid
+  visitDate       DateTime     @map("visit_date") @db.Date
   interview       String?
   examination     String?
   diagnosis       String?
   recommendations String?
-  closedAt        DateTime? @map("closed_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  patient         Patient   @relation(fields: [patientId], references: [id])
-  therapist       Profile   @relation(fields: [therapistId], references: [id])
+  closedAt        DateTime?    @map("closed_at")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  patient         Patient      @relation(fields: [patientId], references: [id])
+  therapist       Profile      @relation(fields: [therapistId], references: [id])
+  bodyMarkers     BodyMarker[]
 
   @@index([patientId])
   @@map("visits")
+}
+
+model BodyMarker {
+  id          String   @id @default(uuid()) @db.Uuid
+  visitId     String   @map("visit_id") @db.Uuid
+  // kod grupy miesniowej z mapy ciala, np. "czworoglowy-p"
+  muscleGroup String   @map("muscle_group")
+  // natezenie bolu w skali NRS 0-10
+  painLevel   Int      @map("pain_level")
+  painType    String?  @map("pain_type")
+  note        String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  visit       Visit    @relation(fields: [visitId], references: [id])
+
+  @@unique([visitId, muscleGroup])
+  @@map("body_markers")
 }

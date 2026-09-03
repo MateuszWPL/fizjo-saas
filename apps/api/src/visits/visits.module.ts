@@ -9,5 +9,6 @@ import { VisitsService } from './visits.service.js';
   imports: [PrismaModule, ProfilesModule, PatientsModule],
   controllers: [VisitsController],
   providers: [VisitsService],
+  exports: [VisitsService],
 })
 export class VisitsModule {}

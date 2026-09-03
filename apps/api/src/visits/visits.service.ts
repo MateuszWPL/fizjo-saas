@@ -52,11 +52,16 @@ export class VisitsService {
     return visit;
   }
 
-  async update(userId: string, id: string, dto: UpdateVisitDto) {
+  async getOpen(userId: string, id: string) {
     const visit = await this.get(userId, id);
     if (visit.closedAt) {
       throw new ConflictException('Zamknięta wizyta jest niemodyfikowalna');
     }
+    return visit;
+  }
+
+  async update(userId: string, id: string, dto: UpdateVisitDto) {
+    const visit = await this.getOpen(userId, id);
     return this.prisma.visit.update({
       where: { id: visit.id },
       data: {

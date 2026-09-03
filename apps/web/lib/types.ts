@@ -1,3 +1,11 @@
+export interface BodyMarker {
+  id: string;
+  muscleGroup: string;
+  painLevel: number;
+  painType: string | null;
+  note: string | null;
+}
+
 export interface Visit {
   id: string;
   patientId: string;

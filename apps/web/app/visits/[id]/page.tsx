@@ -4,14 +4,17 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { visitFields } from "@/components/visit-form";
+import { VisitBodyMap, type MarkerFormValues } from "@/components/visit-body-map";
 import { apiFetch } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
-import type { VisitDetail } from "@/lib/types";
+import type { BodyMarker, VisitDetail } from "@/lib/types";
 
 export default function VisitPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const [visit, setVisit] = useState<VisitDetail | null>(null);
+  const [markers, setMarkers] = useState<BodyMarker[] | null>(null);
+  const [markersError, setMarkersError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -28,6 +31,12 @@ export default function VisitPage() {
           return;
         }
         setVisit((await response.json()) as VisitDetail);
+        const markersResponse = await apiFetch(`/visits/${id}/markers`);
+        if (!markersResponse.ok) {
+          setMarkersError("Nie udało się pobrać mapy bólu.");
+          return;
+        }
+        setMarkers((await markersResponse.json()) as BodyMarker[]);
       } catch {
         setError("Brak połączenia z API.");
       }
@@ -46,6 +55,38 @@ export default function VisitPage() {
     }
     const updated = (await response.json()) as { closedAt: string | null };
     setVisit((current) => (current ? { ...current, closedAt: updated.closedAt } : current));
+  }
+
+  async function saveMarker(group: string, values: MarkerFormValues) {
+    const response = await apiFetch(`/visits/${id}/markers/${group}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        painLevel: values.painLevel,
+        painType: values.painType || null,
+        note: values.note || null,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error("Zapis nie powiódł się");
+    }
+    const saved = (await response.json()) as BodyMarker;
+    setMarkers((current) => {
+      if (!current) {
+        return current;
+      }
+      const rest = current.filter((marker) => marker.muscleGroup !== group);
+      return [...rest, saved].sort((a, b) => a.muscleGroup.localeCompare(b.muscleGroup));
+    });
+  }
+
+  async function deleteMarker(group: string) {
+    const response = await apiFetch(`/visits/${id}/markers/${group}`, { method: "DELETE" });
+    if (!response.ok) {
+      throw new Error("Usunięcie nie powiodło się");
+    }
+    setMarkers((current) =>
+      current ? current.filter((marker) => marker.muscleGroup !== group) : current,
+    );
   }
 
   if (error) {
@@ -111,6 +152,23 @@ export default function VisitPage() {
             </p>
           </section>
         ))}
+      </div>
+      <div className="mt-8">
+        <h2 className="font-medium text-stone-800">Mapa bólu</h2>
+        {markersError ? (
+          <p className="mt-2 text-sm text-red-700">{markersError}</p>
+        ) : markers === null ? (
+          <p className="mt-2 text-sm text-stone-500">Ładowanie...</p>
+        ) : (
+          <div className="mt-4">
+            <VisitBodyMap
+              markers={markers}
+              readOnly={Boolean(visit.closedAt)}
+              onSave={saveMarker}
+              onDelete={deleteMarker}
+            />
+          </div>
+        )}
       </div>
     </main>
   );

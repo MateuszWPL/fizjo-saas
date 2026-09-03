@@ -6,27 +6,27 @@ import { muscleGroupLabels, type BodyView } from "@/lib/body-map/muscle-groups";
 
 interface BodyMapProps {
   view: BodyView;
-  selectedGroups: string[];
-  onGroupClick: (group: string) => void;
+  // grupy bez wpisu dostaja kolor bazowy
+  groupFills: Record<string, string>;
+  selectedGroup?: string | null;
+  onGroupClick?: (group: string) => void;
 }
 
 const fills = {
   contour: "#e7e3dc",
   base: "#f2efe9",
   hovered: "#d8cbb4",
-  selected: "#c96f4a",
-  selectedHovered: "#b85c38",
 };
 
-export function BodyMap({ view, selectedGroups, onGroupClick }: BodyMapProps) {
+export function BodyMap({ view, groupFills, selectedGroup, onGroupClick }: BodyMapProps) {
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
   const { viewBox, paths } = bodyMapData[view];
 
   function fillFor(group: string | null) {
     if (!group) return fills.contour;
-    const selected = selectedGroups.includes(group);
-    if (group === hoveredGroup) return selected ? fills.selectedHovered : fills.hovered;
-    return selected ? fills.selected : fills.base;
+    const custom = groupFills[group];
+    if (custom) return custom;
+    return group === hoveredGroup ? fills.hovered : fills.base;
   }
 
   return (
@@ -43,11 +43,11 @@ export function BodyMap({ view, selectedGroups, onGroupClick }: BodyMapProps) {
             key={i}
             d={d}
             fill={fillFor(group)}
-            stroke="#a09a8f"
-            strokeWidth={0.4}
-            className={group ? "cursor-pointer" : "pointer-events-none"}
+            stroke={group && group === selectedGroup ? "#44403c" : "#a09a8f"}
+            strokeWidth={group && group === selectedGroup ? 1 : 0.4}
+            className={!group ? "pointer-events-none" : onGroupClick ? "cursor-pointer" : ""}
             onMouseEnter={group ? () => setHoveredGroup(group) : undefined}
-            onClick={group ? () => onGroupClick(group) : undefined}
+            onClick={group && onGroupClick ? () => onGroupClick(group) : undefined}
           />
         ))}
       </svg>

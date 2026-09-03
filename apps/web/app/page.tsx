@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { apiFetch } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 
 interface Me {
@@ -25,9 +26,7 @@ export default function HomePage() {
         return;
       }
       try {
-        const response = await fetch("http://localhost:3001/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await apiFetch("/me");
         if (!response.ok) {
           setError("Nie udało się pobrać profilu terapeuty.");
           return;
@@ -76,6 +75,11 @@ export default function HomePage() {
         Zalogowano jako {me.fullName} ({me.role === "OWNER" ? "właściciel" : "terapeuta"}).
       </p>
       <ul className="mt-6 space-y-2 text-sm">
+        <li>
+          <Link href="/patients" className="text-stone-800 underline hover:text-stone-600">
+            Pacjenci
+          </Link>
+        </li>
         <li>
           <Link href="/body-map" className="text-stone-800 underline hover:text-stone-600">
             Mapa ciała

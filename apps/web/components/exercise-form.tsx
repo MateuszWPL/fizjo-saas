@@ -23,8 +23,11 @@ export async function uploadExerciseImage(id: string, file: File) {
   const form = new FormData();
   form.append("file", file);
   const response = await apiFetch(`/exercises/${id}/image`, { method: "POST", body: form });
+  if (response.status === 400) {
+    throw new Error("Nieprawidłowy plik obrazka. Dozwolone są JPG, PNG i WebP do 5 MB.");
+  }
   if (!response.ok) {
-    throw new Error("Upload obrazka nie powiódł się");
+    throw new Error("Upload obrazka nie powiódł się.");
   }
 }
 
@@ -59,8 +62,12 @@ export function ExerciseForm({ initial, submitLabel, onSave }: ExerciseFormProps
     setError(null);
     try {
       await onSave(values, file);
-    } catch {
-      setError("Nie udało się zapisać ćwiczenia.");
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error && saveError.message
+          ? saveError.message
+          : "Nie udało się zapisać ćwiczenia.",
+      );
       setPending(false);
     }
   }

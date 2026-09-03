@@ -6,6 +6,12 @@ export interface BodyMarker {
   note: string | null;
 }
 
+export interface PainHistoryVisit {
+  id: string;
+  visitDate: string;
+  bodyMarkers: { muscleGroup: string; painLevel: number; painType: string | null }[];
+}
+
 export interface Visit {
   id: string;
   patientId: string;

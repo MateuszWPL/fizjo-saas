@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { BodyMap } from "./body-map";
 import { muscleGroupLabels } from "@/lib/body-map/muscle-groups";
-import { painColor } from "@/lib/body-map/pain-scale";
+import { fillsFromMarkers, painColor } from "@/lib/body-map/pain-scale";
 import type { BodyMarker } from "@/lib/types";
 
 export interface MarkerFormValues {
@@ -29,10 +29,7 @@ export function VisitBodyMap({ markers, readOnly, onSave, onDelete }: VisitBodyM
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const groupFills: Record<string, string> = {};
-  for (const marker of markers) {
-    groupFills[marker.muscleGroup] = painColor(marker.painLevel);
-  }
+  const groupFills = fillsFromMarkers(markers);
 
   const selectedMarker = markers.find((marker) => marker.muscleGroup === selectedGroup);
 

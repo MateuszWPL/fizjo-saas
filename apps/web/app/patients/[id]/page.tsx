@@ -84,6 +84,12 @@ export default function PatientPage() {
         </h1>
         <div className="flex gap-3 text-sm">
           <Link
+            href={`/patients/${patient.id}/history`}
+            className="text-stone-800 underline hover:text-stone-600"
+          >
+            Historia bólu
+          </Link>
+          <Link
             href={`/patients/${patient.id}/edit`}
             className="text-stone-800 underline hover:text-stone-600"
           >

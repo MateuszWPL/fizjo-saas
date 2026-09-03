@@ -9,7 +9,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
     ...init,
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init.body ? { "Content-Type": "application/json" } : {}),
+      ...(typeof init.body === "string" ? { "Content-Type": "application/json" } : {}),
       ...init.headers,
     },
   });

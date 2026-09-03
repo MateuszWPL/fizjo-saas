@@ -5,12 +5,14 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
-import type { Patient } from "@/lib/types";
+import type { Patient, Visit } from "@/lib/types";
 
 export default function PatientPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const [patient, setPatient] = useState<Patient | null>(null);
+  const [visits, setVisits] = useState<Visit[] | null>(null);
+  const [visitsError, setVisitsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -27,6 +29,12 @@ export default function PatientPage() {
           return;
         }
         setPatient((await response.json()) as Patient);
+        const visitsResponse = await apiFetch(`/patients/${id}/visits`);
+        if (!visitsResponse.ok) {
+          setVisitsError("Nie udało się pobrać listy wizyt.");
+          return;
+        }
+        setVisits((await visitsResponse.json()) as Visit[]);
       } catch {
         setError("Brak połączenia z API.");
       }
@@ -111,6 +119,52 @@ export default function PatientPage() {
           <p className="mt-1 whitespace-pre-wrap text-sm text-stone-800">{patient.notes}</p>
         </div>
       )}
+      <div className="mt-8">
+        <div className="flex items-center justify-between">
+          <h2 className="font-medium text-stone-800">Wizyty</h2>
+          <Link
+            href={`/patients/${patient.id}/visits/new`}
+            className="rounded bg-stone-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-stone-700"
+          >
+            Dodaj wizytę
+          </Link>
+        </div>
+        {visitsError ? (
+          <p className="mt-2 text-sm text-red-700">{visitsError}</p>
+        ) : visits === null ? (
+          <p className="mt-2 text-sm text-stone-500">Ładowanie...</p>
+        ) : visits.length === 0 ? (
+          <p className="mt-2 text-sm text-stone-500">Nie ma jeszcze żadnych wizyt.</p>
+        ) : (
+          <table className="mt-2 w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-stone-200 text-stone-500">
+                <th className="py-2 font-medium">Data</th>
+                <th className="py-2 font-medium">Terapeuta</th>
+                <th className="py-2 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visits.map((visit) => (
+                <tr key={visit.id} className="border-b border-stone-100">
+                  <td className="py-2">
+                    <Link
+                      href={`/visits/${visit.id}`}
+                      className="text-stone-800 underline hover:text-stone-600"
+                    >
+                      {new Date(visit.visitDate).toLocaleDateString("pl-PL")}
+                    </Link>
+                  </td>
+                  <td className="py-2 text-stone-700">{visit.therapist.fullName}</td>
+                  <td className="py-2 text-stone-700">
+                    {visit.closedAt ? "Zamknięta" : "Otwarta"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </main>
   );
 }

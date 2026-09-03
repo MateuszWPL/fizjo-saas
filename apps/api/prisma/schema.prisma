@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ProfileRole {
+  OWNER
+  THERAPIST
+}
+
+model Clinic {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String
+  createdAt DateTime  @default(now()) @map("created_at")
+  profiles  Profile[]
+  patients  Patient[]
+
+  @@map("clinics")
+}
+
+model Profile {
+  // id jest rowne auth.users.id z Supabase, konto tworzy Supabase Auth
+  id        String      @id @db.Uuid
+  clinicId  String      @map("clinic_id") @db.Uuid
+  fullName  String      @map("full_name")
+  role      ProfileRole @default(THERAPIST)
+  active    Boolean     @default(true)
+  createdAt DateTime    @default(now()) @map("created_at")
+  clinic    Clinic      @relation(fields: [clinicId], references: [id])
+  visits    Visit[]
+
+  @@index([clinicId])
+  @@map("profiles")
+}
+
+model Patient {
+  id         String    @id @default(uuid()) @db.Uuid
+  clinicId   String    @map("clinic_id") @db.Uuid
+  firstName  String    @map("first_name")
+  lastName   String    @map("last_name")
+  birthDate  DateTime? @map("birth_date") @db.Date
+  phone      String?
+  email      String?
+  notes      String?
+  archivedAt DateTime? @map("archived_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  clinic     Clinic    @relation(fields: [clinicId], references: [id])
+  visits     Visit[]
+
+  @@index([clinicId])
+  @@map("patients")
+}
+
+model Visit {
+  id              String    @id @default(uuid()) @db.Uuid
+  patientId       String    @map("patient_id") @db.Uuid
+  therapistId     String    @map("therapist_id") @db.Uuid
+  visitDate       DateTime  @map("visit_date") @db.Date
+  interview       String?
+  examination     String?
+  diagnosis       String?
+  recommendations String?
+  closedAt        DateTime? @map("closed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  patient         Patient   @relation(fields: [patientId], references: [id])
+  therapist       Profile   @relation(fields: [therapistId], references: [id])
+
+  @@index([patientId])
+  @@map("visits")
+}

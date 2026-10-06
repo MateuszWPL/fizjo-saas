@@ -2,7 +2,9 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PatientsService } from '../patients/patients.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ProfilesService } from '../profiles/profiles.service.js';
+import { StorageService } from '../storage/storage.service.js';
 import type { CreateExercisePlanDto } from './dto/create-exercise-plan.dto.js';
+import { renderPlanPdf, type PlanPdfData } from './plan-pdf.js';
 
 @Injectable()
 export class ExercisePlansService {
@@ -10,6 +12,7 @@ export class ExercisePlansService {
     private readonly prisma: PrismaService,
     private readonly profiles: ProfilesService,
     private readonly patients: PatientsService,
+    private readonly storage: StorageService,
   ) {}
 
   async listForPatient(userId: string, patientId: string) {
@@ -68,6 +71,44 @@ export class ExercisePlansService {
       throw new NotFoundException('Nie znaleziono zestawu zaleceń');
     }
     return plan;
+  }
+
+  async renderPdf(userId: string, id: string) {
+    const clinicId = await this.profiles.clinicIdFor(userId);
+    const plan = await this.prisma.exercisePlan.findFirst({
+      where: { id, patient: { clinicId } },
+      include: {
+        therapist: { select: { fullName: true } },
+        patient: { include: { clinic: { select: { name: true } } } },
+        items: { orderBy: { position: 'asc' }, include: { exercise: true } },
+      },
+    });
+    if (!plan) {
+      throw new NotFoundException('Nie znaleziono zestawu zaleceń');
+    }
+    const items: PlanPdfData['items'] = [];
+    for (const item of plan.items) {
+      const image = item.exercise.imagePath
+        ? await this.storage.downloadExerciseImage(item.exercise.imagePath)
+        : null;
+      items.push({
+        name: item.exercise.name,
+        description: item.exercise.description,
+        sets: item.sets,
+        reps: item.reps,
+        note: item.note,
+        // pdfkit obsluguje tylko JPEG i PNG, obrazki WebP pomijamy w PDF
+        image: image && ['image/jpeg', 'image/png'].includes(image.type) ? image.data : null,
+      });
+    }
+    return renderPlanPdf({
+      clinicName: plan.patient.clinic.name,
+      patientName: `${plan.patient.firstName} ${plan.patient.lastName}`,
+      therapistName: plan.therapist.fullName,
+      issuedAt: plan.createdAt,
+      note: plan.note,
+      items,
+    });
   }
 
   async remove(userId: string, id: string) {

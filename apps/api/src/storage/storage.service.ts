@@ -35,6 +35,15 @@ export class StorageService {
     await this.getClient().storage.from(BUCKET).remove([path]);
   }
 
+  // brak obrazka nie powinien blokowac wydania zalecen, cwiczenie trafi do PDF bez niego
+  async downloadExerciseImage(path: string) {
+    const { data, error } = await this.getClient().storage.from(BUCKET).download(path);
+    if (error) {
+      return null;
+    }
+    return { data: Buffer.from(await data.arrayBuffer()), type: data.type };
+  }
+
   exerciseImageUrl(path: string): string {
     return `${process.env.SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
   }

@@ -6,6 +6,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard, type AuthUser } from '../auth/auth.guard.js';
@@ -38,6 +39,15 @@ export class ExercisePlansController {
   @Get('plans/:id')
   get(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.plans.get(user.id, id);
+  }
+
+  @Get('plans/:id/pdf')
+  async pdf(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    const pdf = await this.plans.renderPdf(user.id, id);
+    return new StreamableFile(pdf, {
+      type: 'application/pdf',
+      disposition: 'attachment; filename="zalecenia.pdf"',
+    });
   }
 
   @Delete('plans/:id')

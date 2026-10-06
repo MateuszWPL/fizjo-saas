@@ -19,6 +19,7 @@ export class AdminService {
   ) {}
 
   async stats(userId: string) {
+    const db = this.prisma.forUser(userId);
     const clinicId = await this.profiles.ownerClinicIdFor(userId);
     const now = new Date();
     // visit_date to kolumna DATE bez strefy, wiec granice miesiaca liczymy w UTC,
@@ -28,8 +29,8 @@ export class AdminService {
       Date.UTC(now.getFullYear(), now.getMonth() + 1, 1),
     );
     const [patients, visitsThisMonth] = await Promise.all([
-      this.prisma.patient.count({ where: { clinicId, archivedAt: null } }),
-      this.prisma.visit.count({
+      db.patient.count({ where: { clinicId, archivedAt: null } }),
+      db.visit.count({
         where: {
           patient: { clinicId },
           visitDate: { gte: monthStart, lt: nextMonthStart },
@@ -40,8 +41,9 @@ export class AdminService {
   }
 
   async listTherapists(userId: string) {
+    const db = this.prisma.forUser(userId);
     const clinicId = await this.profiles.ownerClinicIdFor(userId);
-    const profiles = await this.prisma.profile.findMany({
+    const profiles = await db.profile.findMany({
       where: { clinicId },
       orderBy: { fullName: 'asc' },
     });
@@ -68,6 +70,7 @@ export class AdminService {
   }
 
   async createTherapist(userId: string, dto: CreateTherapistDto) {
+    const db = this.prisma.forUser(userId);
     const clinicId = await this.profiles.ownerClinicIdFor(userId);
     const auth = this.supabase.getClient().auth.admin;
     const { data, error } = await auth.createUser({
@@ -84,7 +87,7 @@ export class AdminService {
       );
     }
     try {
-      return await this.prisma.profile.create({
+      return await db.profile.create({
         data: {
           id: data.user.id,
           clinicId,
@@ -109,19 +112,17 @@ export class AdminService {
     therapistId: string,
     active: boolean,
   ) {
+    const db = this.prisma.forUser(userId);
     const clinicId = await this.profiles.ownerClinicIdFor(userId);
     if (therapistId === userId) {
       throw new BadRequestException('Nie można zmienić statusu własnego konta');
     }
-    const profile = await this.prisma.profile.findFirst({
+    const profile = await db.profile.findFirst({
       where: { id: therapistId, clinicId },
     });
     if (!profile) {
       throw new NotFoundException('Nie znaleziono terapeuty');
     }
-    return this.prisma.profile.update({
-      where: { id: profile.id },
-      data: { active },
-    });
+    return db.profile.update({ where: { id: profile.id }, data: { active } });
   }
 }

@@ -16,22 +16,25 @@ export class AuthController {
   @UseGuards(AuthGuard)
   @Get('me')
   async me(@CurrentUser() user: AuthUser) {
-    const profile = await this.prisma.profile.findUnique({
-      where: { id: user.id },
-      include: { clinic: true },
-    });
+    const db = this.prisma.forUser(user.id);
+    const profile = await db.profile.findUnique({ where: { id: user.id } });
     if (!profile) {
       throw new NotFoundException('Brak profilu terapeuty dla tego konta');
     }
+    // nieaktywny uzytkownik widzi w bazie tylko wlasny profil, bez gabinetu,
+    // wiec status sprawdzamy przed pobraniem gabinetu
     if (!profile.active) {
       throw new ForbiddenException(
         'Konto zostało dezaktywowane przez właściciela gabinetu',
       );
     }
+    const clinic = await db.clinic.findUniqueOrThrow({
+      where: { id: profile.clinicId },
+    });
     return {
       fullName: profile.fullName,
       role: profile.role,
-      clinic: { name: profile.clinic.name },
+      clinic: { name: clinic.name },
     };
   }
 }

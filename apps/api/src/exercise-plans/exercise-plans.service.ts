@@ -22,8 +22,9 @@ export class ExercisePlansService {
   ) {}
 
   async listForPatient(userId: string, patientId: string) {
+    const db = this.prisma.forUser(userId);
     const patient = await this.patients.get(userId, patientId);
-    return this.prisma.exercisePlan.findMany({
+    return db.exercisePlan.findMany({
       where: { patientId: patient.id },
       orderBy: { createdAt: 'desc' },
       include: {
@@ -34,9 +35,10 @@ export class ExercisePlansService {
   }
 
   async create(userId: string, patientId: string, dto: CreateExercisePlanDto) {
+    const db = this.prisma.forUser(userId);
     const patient = await this.patients.get(userId, patientId);
     const exerciseIds = [...new Set(dto.items.map((item) => item.exerciseId))];
-    const found = await this.prisma.exercise.count({
+    const found = await db.exercise.count({
       where: { id: { in: exerciseIds }, clinicId: patient.clinicId },
     });
     if (found !== exerciseIds.length) {
@@ -44,7 +46,7 @@ export class ExercisePlansService {
         'Zestaw zawiera ćwiczenie spoza bazy gabinetu',
       );
     }
-    return this.prisma.exercisePlan.create({
+    return db.exercisePlan.create({
       data: {
         patientId: patient.id,
         therapistId: userId,
@@ -63,8 +65,9 @@ export class ExercisePlansService {
   }
 
   async get(userId: string, id: string) {
+    const db = this.prisma.forUser(userId);
     const clinicId = await this.profiles.clinicIdFor(userId);
-    const plan = await this.prisma.exercisePlan.findFirst({
+    const plan = await db.exercisePlan.findFirst({
       where: { id, patient: { clinicId } },
       include: {
         therapist: { select: { fullName: true } },
@@ -84,8 +87,9 @@ export class ExercisePlansService {
   }
 
   async renderPdf(userId: string, id: string) {
+    const db = this.prisma.forUser(userId);
     const clinicId = await this.profiles.clinicIdFor(userId);
-    const plan = await this.prisma.exercisePlan.findFirst({
+    const plan = await db.exercisePlan.findFirst({
       where: { id, patient: { clinicId } },
       include: {
         therapist: { select: { fullName: true } },
@@ -141,7 +145,8 @@ export class ExercisePlansService {
   }
 
   async remove(userId: string, id: string) {
+    const db = this.prisma.forUser(userId);
     const plan = await this.get(userId, id);
-    await this.prisma.exercisePlan.delete({ where: { id: plan.id } });
+    await db.exercisePlan.delete({ where: { id: plan.id } });
   }
 }

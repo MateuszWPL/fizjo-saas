@@ -28,8 +28,9 @@ export class ExercisesService {
   }
 
   async list(userId: string) {
+    const db = this.prisma.forUser(userId);
     const clinicId = await this.profiles.clinicIdFor(userId);
-    const exercises = await this.prisma.exercise.findMany({
+    const exercises = await db.exercise.findMany({
       where: { clinicId },
       orderBy: { name: 'asc' },
     });
@@ -37,10 +38,9 @@ export class ExercisesService {
   }
 
   async get(userId: string, id: string) {
+    const db = this.prisma.forUser(userId);
     const clinicId = await this.profiles.clinicIdFor(userId);
-    const exercise = await this.prisma.exercise.findFirst({
-      where: { id, clinicId },
-    });
+    const exercise = await db.exercise.findFirst({ where: { id, clinicId } });
     if (!exercise) {
       throw new NotFoundException('Nie znaleziono ćwiczenia');
     }
@@ -48,8 +48,9 @@ export class ExercisesService {
   }
 
   async create(userId: string, dto: CreateExerciseDto) {
+    const db = this.prisma.forUser(userId);
     const clinicId = await this.profiles.clinicIdFor(userId);
-    const exercise = await this.prisma.exercise.create({
+    const exercise = await db.exercise.create({
       data: {
         clinicId,
         name: dto.name,
@@ -62,8 +63,9 @@ export class ExercisesService {
   }
 
   async update(userId: string, id: string, dto: UpdateExerciseDto) {
+    const db = this.prisma.forUser(userId);
     const exercise = await this.get(userId, id);
-    const updated = await this.prisma.exercise.update({
+    const updated = await db.exercise.update({
       where: { id: exercise.id },
       data: {
         name: dto.name,
@@ -76,14 +78,15 @@ export class ExercisesService {
   }
 
   async remove(userId: string, id: string) {
+    const db = this.prisma.forUser(userId);
     const exercise = await this.get(userId, id);
-    const usages = await this.prisma.exercisePlanItem.count({
+    const usages = await db.exercisePlanItem.count({
       where: { exerciseId: exercise.id },
     });
     if (usages > 0) {
       throw new ConflictException('Ćwiczenie jest używane w zestawach zaleceń');
     }
-    await this.prisma.exercise.delete({ where: { id: exercise.id } });
+    await db.exercise.delete({ where: { id: exercise.id } });
     if (exercise.imagePath) {
       await this.storage.removeExerciseImage(exercise.imagePath);
     }
@@ -95,11 +98,12 @@ export class ExercisesService {
     data: Buffer,
     contentType: string,
   ) {
+    const db = this.prisma.forUser(userId);
     const exercise = await this.get(userId, id);
     // stala sciezka bez rozszerzenia, wiec ponowny upload nadpisuje stary plik
     const path = `${exercise.clinicId}/${exercise.id}`;
     await this.storage.uploadExerciseImage(path, data, contentType);
-    const updated = await this.prisma.exercise.update({
+    const updated = await db.exercise.update({
       where: { id: exercise.id },
       data: { imagePath: path },
     });

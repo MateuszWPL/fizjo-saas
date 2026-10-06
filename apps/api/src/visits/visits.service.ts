@@ -18,8 +18,9 @@ export class VisitsService {
   ) {}
 
   async listForPatient(userId: string, patientId: string) {
+    const db = this.prisma.forUser(userId);
     const patient = await this.patients.get(userId, patientId);
-    return this.prisma.visit.findMany({
+    return db.visit.findMany({
       where: { patientId: patient.id },
       orderBy: { visitDate: 'desc' },
       include: { therapist: { select: { fullName: true } } },
@@ -27,8 +28,9 @@ export class VisitsService {
   }
 
   async create(userId: string, patientId: string, dto: CreateVisitDto) {
+    const db = this.prisma.forUser(userId);
     const patient = await this.patients.get(userId, patientId);
-    return this.prisma.visit.create({
+    return db.visit.create({
       data: {
         patientId: patient.id,
         therapistId: userId,
@@ -42,8 +44,9 @@ export class VisitsService {
   }
 
   async get(userId: string, id: string) {
+    const db = this.prisma.forUser(userId);
     const clinicId = await this.profiles.clinicIdFor(userId);
-    const visit = await this.prisma.visit.findFirst({
+    const visit = await db.visit.findFirst({
       where: { id, patient: { clinicId } },
       include: {
         therapist: { select: { fullName: true } },
@@ -65,8 +68,9 @@ export class VisitsService {
   }
 
   async update(userId: string, id: string, dto: UpdateVisitDto) {
+    const db = this.prisma.forUser(userId);
     const visit = await this.getOpen(userId, id);
-    return this.prisma.visit.update({
+    return db.visit.update({
       where: { id: visit.id },
       data: {
         visitDate: dto.visitDate ? new Date(dto.visitDate) : undefined,
@@ -79,11 +83,12 @@ export class VisitsService {
   }
 
   async close(userId: string, id: string) {
+    const db = this.prisma.forUser(userId);
     const visit = await this.get(userId, id);
     if (visit.closedAt) {
       throw new ConflictException('Wizyta jest już zamknięta');
     }
-    return this.prisma.visit.update({
+    return db.visit.update({
       where: { id: visit.id },
       data: { closedAt: new Date() },
     });

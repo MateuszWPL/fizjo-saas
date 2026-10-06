@@ -13,8 +13,9 @@ export class BodyMarkersService {
   ) {}
 
   async painHistory(userId: string, patientId: string) {
+    const db = this.prisma.forUser(userId);
     const patient = await this.patients.get(userId, patientId);
-    return this.prisma.visit.findMany({
+    return db.visit.findMany({
       where: { patientId: patient.id, bodyMarkers: { some: {} } },
       orderBy: { visitDate: 'asc' },
       select: {
@@ -29,8 +30,9 @@ export class BodyMarkersService {
   }
 
   async listForVisit(userId: string, visitId: string) {
+    const db = this.prisma.forUser(userId);
     await this.visits.get(userId, visitId);
-    return this.prisma.bodyMarker.findMany({
+    return db.bodyMarker.findMany({
       where: { visitId },
       orderBy: { muscleGroup: 'asc' },
     });
@@ -42,8 +44,9 @@ export class BodyMarkersService {
     muscleGroup: string,
     dto: UpsertBodyMarkerDto,
   ) {
+    const db = this.prisma.forUser(userId);
     await this.visits.getOpen(userId, visitId);
-    return this.prisma.bodyMarker.upsert({
+    return db.bodyMarker.upsert({
       where: { visitId_muscleGroup: { visitId, muscleGroup } },
       create: {
         visitId,
@@ -61,8 +64,9 @@ export class BodyMarkersService {
   }
 
   async remove(userId: string, visitId: string, muscleGroup: string) {
+    const db = this.prisma.forUser(userId);
     await this.visits.getOpen(userId, visitId);
-    const removed = await this.prisma.bodyMarker.deleteMany({
+    const removed = await db.bodyMarker.deleteMany({
       where: { visitId, muscleGroup },
     });
     if (removed.count === 0) {

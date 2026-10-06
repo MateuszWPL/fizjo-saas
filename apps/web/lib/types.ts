@@ -15,6 +15,28 @@ export interface Exercise {
   defaultReps: number | null;
 }
 
+export interface ExercisePlanSummary {
+  id: string;
+  createdAt: string;
+  therapist: { fullName: string };
+  _count: { items: number };
+}
+
+export interface ExercisePlan {
+  id: string;
+  createdAt: string;
+  note: string | null;
+  therapist: { fullName: string };
+  patient: { id: string; firstName: string; lastName: string };
+  items: {
+    id: string;
+    sets: number | null;
+    reps: number | null;
+    note: string | null;
+    exercise: { name: string; description: string | null };
+  }[];
+}
+
 export interface PainHistoryVisit {
   id: string;
   visitDate: string;

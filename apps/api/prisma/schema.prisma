@@ -24,51 +24,84 @@ model Clinic {
 }
 
 model Exercise {
-  id          String   @id @default(uuid()) @db.Uuid
-  clinicId    String   @map("clinic_id") @db.Uuid
+  id          String             @id @default(uuid()) @db.Uuid
+  clinicId    String             @map("clinic_id") @db.Uuid
   name        String
   description String?
   // sciezka pliku w bucketcie "exercises" w Supabase Storage
-  imagePath   String?  @map("image_path")
-  defaultSets Int?     @map("default_sets")
-  defaultReps Int?     @map("default_reps")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  clinic      Clinic   @relation(fields: [clinicId], references: [id])
+  imagePath   String?            @map("image_path")
+  defaultSets Int?               @map("default_sets")
+  defaultReps Int?               @map("default_reps")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+  clinic      Clinic             @relation(fields: [clinicId], references: [id])
+  planItems   ExercisePlanItem[]
 
   @@index([clinicId])
   @@map("exercises")
 }
 
+model ExercisePlan {
+  id          String             @id @default(uuid()) @db.Uuid
+  patientId   String             @map("patient_id") @db.Uuid
+  therapistId String             @map("therapist_id") @db.Uuid
+  note        String?
+  createdAt   DateTime           @default(now()) @map("created_at")
+  patient     Patient            @relation(fields: [patientId], references: [id])
+  therapist   Profile            @relation(fields: [therapistId], references: [id])
+  items       ExercisePlanItem[]
+
+  @@index([patientId])
+  @@map("exercise_plans")
+}
+
+model ExercisePlanItem {
+  id         String       @id @default(uuid()) @db.Uuid
+  planId     String       @map("plan_id") @db.Uuid
+  exerciseId String       @map("exercise_id") @db.Uuid
+  // kolejnosc cwiczen w zestawie, taka jak ustawil terapeuta
+  position   Int
+  sets       Int?
+  reps       Int?
+  note       String?
+  plan       ExercisePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  exercise   Exercise     @relation(fields: [exerciseId], references: [id])
+
+  @@index([planId])
+  @@map("exercise_plan_items")
+}
+
 model Profile {
   // id jest rowne auth.users.id z Supabase, konto tworzy Supabase Auth
-  id        String      @id @db.Uuid
-  clinicId  String      @map("clinic_id") @db.Uuid
-  fullName  String      @map("full_name")
-  role      ProfileRole @default(THERAPIST)
-  active    Boolean     @default(true)
-  createdAt DateTime    @default(now()) @map("created_at")
-  clinic    Clinic      @relation(fields: [clinicId], references: [id])
+  id        String         @id @db.Uuid
+  clinicId  String         @map("clinic_id") @db.Uuid
+  fullName  String         @map("full_name")
+  role      ProfileRole    @default(THERAPIST)
+  active    Boolean        @default(true)
+  createdAt DateTime       @default(now()) @map("created_at")
+  clinic    Clinic         @relation(fields: [clinicId], references: [id])
   visits    Visit[]
+  plans     ExercisePlan[]
 
   @@index([clinicId])
   @@map("profiles")
 }
 
 model Patient {
-  id         String    @id @default(uuid()) @db.Uuid
-  clinicId   String    @map("clinic_id") @db.Uuid
-  firstName  String    @map("first_name")
-  lastName   String    @map("last_name")
-  birthDate  DateTime? @map("birth_date") @db.Date
+  id         String         @id @default(uuid()) @db.Uuid
+  clinicId   String         @map("clinic_id") @db.Uuid
+  firstName  String         @map("first_name")
+  lastName   String         @map("last_name")
+  birthDate  DateTime?      @map("birth_date") @db.Date
   phone      String?
   email      String?
   notes      String?
-  archivedAt DateTime? @map("archived_at")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-  clinic     Clinic    @relation(fields: [clinicId], references: [id])
+  archivedAt DateTime?      @map("archived_at")
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+  clinic     Clinic         @relation(fields: [clinicId], references: [id])
   visits     Visit[]
+  plans      ExercisePlan[]
 
   @@index([clinicId])
   @@map("patients")

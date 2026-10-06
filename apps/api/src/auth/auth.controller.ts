@@ -1,4 +1,10 @@
-import { Controller, Get, NotFoundException, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  ForbiddenException,
+  Get,
+  NotFoundException,
+  UseGuards,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuthGuard, type AuthUser } from './auth.guard.js';
 import { CurrentUser } from './current-user.decorator.js';
@@ -16,6 +22,9 @@ export class AuthController {
     });
     if (!profile) {
       throw new NotFoundException('Brak profilu terapeuty dla tego konta');
+    }
+    if (!profile.active) {
+      throw new ForbiddenException('Konto zostało dezaktywowane przez właściciela gabinetu');
     }
     return {
       fullName: profile.fullName,

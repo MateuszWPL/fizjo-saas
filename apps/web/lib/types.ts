@@ -15,6 +15,12 @@ export interface Exercise {
   defaultReps: number | null;
 }
 
+export interface Me {
+  fullName: string;
+  role: "OWNER" | "THERAPIST";
+  clinic: { name: string };
+}
+
 export interface Therapist {
   id: string;
   fullName: string;

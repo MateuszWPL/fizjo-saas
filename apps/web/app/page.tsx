@@ -5,12 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
-
-interface Me {
-  fullName: string;
-  role: "OWNER" | "THERAPIST";
-  clinic: { name: string };
-}
+import type { Me } from "@/lib/types";
 
 export default function HomePage() {
   const router = useRouter();
@@ -69,12 +64,7 @@ export default function HomePage() {
 
   return (
     <main className="mx-auto max-w-3xl p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-stone-800">{me.clinic.name}</h1>
-        <button onClick={logout} className="text-sm text-stone-500 underline hover:text-stone-700">
-          Wyloguj
-        </button>
-      </div>
+      <h1 className="text-xl font-semibold text-stone-800">{me.clinic.name}</h1>
       <p className="mt-1 text-sm text-stone-600">
         Zalogowano jako {me.fullName} ({me.role === "OWNER" ? "właściciel" : "terapeuta"}).
       </p>

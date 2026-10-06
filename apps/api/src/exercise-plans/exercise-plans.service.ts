@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { MailService } from '../mail/mail.service.js';
 import { PatientsService } from '../patients/patients.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -36,7 +40,9 @@ export class ExercisePlansService {
       where: { id: { in: exerciseIds }, clinicId: patient.clinicId },
     });
     if (found !== exerciseIds.length) {
-      throw new BadRequestException('Zestaw zawiera ćwiczenie spoza bazy gabinetu');
+      throw new BadRequestException(
+        'Zestaw zawiera ćwiczenie spoza bazy gabinetu',
+      );
     }
     return this.prisma.exercisePlan.create({
       data: {
@@ -62,7 +68,9 @@ export class ExercisePlansService {
       where: { id, patient: { clinicId } },
       include: {
         therapist: { select: { fullName: true } },
-        patient: { select: { id: true, firstName: true, lastName: true, email: true } },
+        patient: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
         items: {
           orderBy: { position: 'asc' },
           include: { exercise: { select: { name: true, description: true } } },
@@ -100,7 +108,10 @@ export class ExercisePlansService {
         reps: item.reps,
         note: item.note,
         // pdfkit obsluguje tylko JPEG i PNG, obrazki WebP pomijamy w PDF
-        image: image && ['image/jpeg', 'image/png'].includes(image.type) ? image.data : null,
+        image:
+          image && ['image/jpeg', 'image/png'].includes(image.type)
+            ? image.data
+            : null,
       });
     }
     return renderPlanPdf({

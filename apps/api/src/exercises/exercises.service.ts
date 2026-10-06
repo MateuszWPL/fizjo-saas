@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Exercise } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ProfilesService } from '../profiles/profiles.service.js';
@@ -17,7 +21,9 @@ export class ExercisesService {
   private withImageUrl(exercise: Exercise) {
     return {
       ...exercise,
-      imageUrl: exercise.imagePath ? this.storage.exerciseImageUrl(exercise.imagePath) : null,
+      imageUrl: exercise.imagePath
+        ? this.storage.exerciseImageUrl(exercise.imagePath)
+        : null,
     };
   }
 
@@ -32,7 +38,9 @@ export class ExercisesService {
 
   async get(userId: string, id: string) {
     const clinicId = await this.profiles.clinicIdFor(userId);
-    const exercise = await this.prisma.exercise.findFirst({ where: { id, clinicId } });
+    const exercise = await this.prisma.exercise.findFirst({
+      where: { id, clinicId },
+    });
     if (!exercise) {
       throw new NotFoundException('Nie znaleziono ćwiczenia');
     }
@@ -69,7 +77,9 @@ export class ExercisesService {
 
   async remove(userId: string, id: string) {
     const exercise = await this.get(userId, id);
-    const usages = await this.prisma.exercisePlanItem.count({ where: { exerciseId: exercise.id } });
+    const usages = await this.prisma.exercisePlanItem.count({
+      where: { exerciseId: exercise.id },
+    });
     if (usages > 0) {
       throw new ConflictException('Ćwiczenie jest używane w zestawach zaleceń');
     }
@@ -79,7 +89,12 @@ export class ExercisesService {
     }
   }
 
-  async uploadImage(userId: string, id: string, data: Buffer, contentType: string) {
+  async uploadImage(
+    userId: string,
+    id: string,
+    data: Buffer,
+    contentType: string,
+  ) {
     const exercise = await this.get(userId, id);
     // stala sciezka bez rozszerzenia, wiec ponowny upload nadpisuje stary plik
     const path = `${exercise.clinicId}/${exercise.id}`;

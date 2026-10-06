@@ -29,7 +29,9 @@ export class PatientsService {
 
   async get(userId: string, id: string) {
     const clinicId = await this.profiles.clinicIdFor(userId);
-    const patient = await this.prisma.patient.findFirst({ where: { id, clinicId } });
+    const patient = await this.prisma.patient.findFirst({
+      where: { id, clinicId },
+    });
     if (!patient) {
       throw new NotFoundException('Nie znaleziono pacjenta');
     }

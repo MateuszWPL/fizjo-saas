@@ -36,7 +36,12 @@ export class BodyMarkersService {
     });
   }
 
-  async upsert(userId: string, visitId: string, muscleGroup: string, dto: UpsertBodyMarkerDto) {
+  async upsert(
+    userId: string,
+    visitId: string,
+    muscleGroup: string,
+    dto: UpsertBodyMarkerDto,
+  ) {
     await this.visits.getOpen(userId, visitId);
     return this.prisma.bodyMarker.upsert({
       where: { visitId_muscleGroup: { visitId, muscleGroup } },

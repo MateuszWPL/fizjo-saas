@@ -24,7 +24,9 @@ export class AuthController {
       throw new NotFoundException('Brak profilu terapeuty dla tego konta');
     }
     if (!profile.active) {
-      throw new ForbiddenException('Konto zostało dezaktywowane przez właściciela gabinetu');
+      throw new ForbiddenException(
+        'Konto zostało dezaktywowane przez właściciela gabinetu',
+      );
     }
     return {
       fullName: profile.fullName,

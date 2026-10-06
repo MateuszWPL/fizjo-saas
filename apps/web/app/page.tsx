@@ -27,6 +27,10 @@ export default function HomePage() {
       }
       try {
         const response = await apiFetch("/me");
+        if (response.status === 403) {
+          setError("Twoje konto zostało dezaktywowane przez właściciela gabinetu.");
+          return;
+        }
         if (!response.ok) {
           setError("Nie udało się pobrać profilu terapeuty.");
           return;
@@ -90,6 +94,13 @@ export default function HomePage() {
             Mapa ciała
           </Link>
         </li>
+        {me.role === "OWNER" && (
+          <li>
+            <Link href="/admin" className="text-stone-800 underline hover:text-stone-600">
+              Panel gabinetu
+            </Link>
+          </li>
+        )}
       </ul>
     </main>
   );

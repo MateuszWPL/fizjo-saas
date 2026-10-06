@@ -15,6 +15,14 @@ export interface Exercise {
   defaultReps: number | null;
 }
 
+export interface Therapist {
+  id: string;
+  fullName: string;
+  role: "OWNER" | "THERAPIST";
+  active: boolean;
+  email: string | null;
+}
+
 export interface ExercisePlanSummary {
   id: string;
   createdAt: string;

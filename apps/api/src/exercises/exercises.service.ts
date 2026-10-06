@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Exercise } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ProfilesService } from '../profiles/profiles.service.js';
@@ -69,6 +69,10 @@ export class ExercisesService {
 
   async remove(userId: string, id: string) {
     const exercise = await this.get(userId, id);
+    const usages = await this.prisma.exercisePlanItem.count({ where: { exerciseId: exercise.id } });
+    if (usages > 0) {
+      throw new ConflictException('Ćwiczenie jest używane w zestawach zaleceń');
+    }
     await this.prisma.exercise.delete({ where: { id: exercise.id } });
     if (exercise.imagePath) {
       await this.storage.removeExerciseImage(exercise.imagePath);

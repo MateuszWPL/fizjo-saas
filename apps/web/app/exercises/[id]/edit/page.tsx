@@ -59,6 +59,10 @@ export default function EditExercisePage() {
       return;
     }
     const response = await apiFetch(`/exercises/${id}`, { method: "DELETE" });
+    if (response.status === 409) {
+      setError("Tego ćwiczenia nie można usunąć, bo jest w wydanych zestawach zaleceń.");
+      return;
+    }
     if (!response.ok) {
       setError("Nie udało się usunąć ćwiczenia.");
       return;

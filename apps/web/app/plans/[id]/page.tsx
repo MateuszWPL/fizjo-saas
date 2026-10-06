@@ -34,6 +34,27 @@ export default function PlanPage() {
     load();
   }, [id, router]);
 
+  // link <a href> nie wysle tokenu, wiec PDF pobieramy fetchem i podajemy
+  // przegladarce jako tymczasowy URL do pliku
+  async function downloadPdf() {
+    setError(null);
+    try {
+      const response = await apiFetch(`/plans/${id}/pdf`);
+      if (!response.ok) {
+        setError("Nie udało się wygenerować PDF.");
+        return;
+      }
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "zalecenia.pdf";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError("Brak połączenia z API.");
+    }
+  }
+
   async function remove() {
     if (!plan || !window.confirm("Usunąć zestaw zaleceń?")) {
       return;
@@ -75,9 +96,14 @@ export default function PlanPage() {
         <h1 className="text-xl font-semibold text-stone-800">
           Zestaw zaleceń z {new Date(plan.createdAt).toLocaleDateString("pl-PL")}
         </h1>
-        <button onClick={remove} className="text-sm text-red-700 underline hover:text-red-800">
-          Usuń zestaw
-        </button>
+        <div className="flex gap-3 text-sm">
+          <button onClick={downloadPdf} className="text-stone-800 underline hover:text-stone-600">
+            Pobierz PDF
+          </button>
+          <button onClick={remove} className="text-red-700 underline hover:text-red-800">
+            Usuń zestaw
+          </button>
+        </div>
       </div>
       <p className="mt-1 text-sm text-stone-600">
         {plan.patient.lastName} {plan.patient.firstName}, wydał {plan.therapist.fullName}

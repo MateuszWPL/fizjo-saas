@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { MailService } from '../mail/mail.service.js';
 import { PatientsService } from '../patients/patients.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ProfilesService } from '../profiles/profiles.service.js';
@@ -13,6 +14,7 @@ export class ExercisePlansService {
     private readonly profiles: ProfilesService,
     private readonly patients: PatientsService,
     private readonly storage: StorageService,
+    private readonly mail: MailService,
   ) {}
 
   async listForPatient(userId: string, patientId: string) {
@@ -60,7 +62,7 @@ export class ExercisePlansService {
       where: { id, patient: { clinicId } },
       include: {
         therapist: { select: { fullName: true } },
-        patient: { select: { id: true, firstName: true, lastName: true } },
+        patient: { select: { id: true, firstName: true, lastName: true, email: true } },
         items: {
           orderBy: { position: 'asc' },
           include: { exercise: { select: { name: true, description: true } } },
@@ -109,6 +111,22 @@ export class ExercisePlansService {
       note: plan.note,
       items,
     });
+  }
+
+  async sendByEmail(userId: string, id: string) {
+    const plan = await this.get(userId, id);
+    if (!plan.patient.email) {
+      throw new BadRequestException('Pacjent nie ma adresu e-mail');
+    }
+    const pdf = await this.renderPdf(userId, id);
+    await this.mail.sendWithPdf(
+      plan.patient.email,
+      'Zalecenia ćwiczeń',
+      `Dzień dobry,\n\nw załączniku przesyłamy zestaw zaleceń ćwiczeń z dnia ${plan.createdAt.toLocaleDateString('pl-PL')}.\n\n${plan.therapist.fullName}`,
+      'zalecenia.pdf',
+      pdf,
+    );
+    return { sentTo: plan.patient.email };
   }
 
   async remove(userId: string, id: string) {

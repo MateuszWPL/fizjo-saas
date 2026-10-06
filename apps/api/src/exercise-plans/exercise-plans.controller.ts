@@ -50,6 +50,11 @@ export class ExercisePlansController {
     });
   }
 
+  @Post('plans/:id/send')
+  send(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.plans.sendByEmail(user.id, id);
+  }
+
   @Delete('plans/:id')
   remove(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     return this.plans.remove(user.id, id);

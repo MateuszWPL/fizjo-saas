@@ -12,6 +12,8 @@ export default function PlanPage() {
   const { id } = useParams<{ id: string }>();
   const [plan, setPlan] = useState<ExercisePlan | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -53,6 +55,30 @@ export default function PlanPage() {
     } catch {
       setError("Brak połączenia z API.");
     }
+  }
+
+  async function sendEmail() {
+    if (!plan?.patient.email) {
+      return;
+    }
+    if (!window.confirm(`Wysłać zalecenia na adres ${plan.patient.email}?`)) {
+      return;
+    }
+    setSending(true);
+    setError(null);
+    setSentTo(null);
+    try {
+      const response = await apiFetch(`/plans/${id}/send`, { method: "POST" });
+      if (!response.ok) {
+        const body = (await response.json()) as { message?: string };
+        setError(body.message ?? "Nie udało się wysłać e-maila.");
+      } else {
+        setSentTo(((await response.json()) as { sentTo: string }).sentTo);
+      }
+    } catch {
+      setError("Brak połączenia z API.");
+    }
+    setSending(false);
   }
 
   async function remove() {
@@ -100,6 +126,13 @@ export default function PlanPage() {
           <button onClick={downloadPdf} className="text-stone-800 underline hover:text-stone-600">
             Pobierz PDF
           </button>
+          <button
+            onClick={sendEmail}
+            disabled={!plan.patient.email || sending}
+            className="text-stone-800 underline hover:text-stone-600 disabled:text-stone-400 disabled:no-underline"
+          >
+            {sending ? "Wysyłanie..." : "Wyślij e-mailem"}
+          </button>
           <button onClick={remove} className="text-red-700 underline hover:text-red-800">
             Usuń zestaw
           </button>
@@ -109,6 +142,12 @@ export default function PlanPage() {
         {plan.patient.lastName} {plan.patient.firstName}, wydał {plan.therapist.fullName}
       </p>
       {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
+      {sentTo && <p className="mt-2 text-sm text-green-700">Wysłano zalecenia na {sentTo}.</p>}
+      {!plan.patient.email && (
+        <p className="mt-2 text-sm text-stone-500">
+          Żeby wysłać zalecenia e-mailem, dodaj adres w danych pacjenta.
+        </p>
+      )}
       <table className="mt-4 w-full text-left text-sm">
         <thead>
           <tr className="border-b border-stone-200 text-stone-500">

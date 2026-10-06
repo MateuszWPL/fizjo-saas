@@ -27,7 +27,7 @@ export interface ExercisePlan {
   createdAt: string;
   note: string | null;
   therapist: { fullName: string };
-  patient: { id: string; firstName: string; lastName: string };
+  patient: { id: string; firstName: string; lastName: string; email: string | null };
   items: {
     id: string;
     sets: number | null;

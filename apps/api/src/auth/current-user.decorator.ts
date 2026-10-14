@@ -4,7 +4,9 @@ import type { AuthUser } from './auth.guard.js';
 
 export const CurrentUser = createParamDecorator(
   (_data: unknown, context: ExecutionContext): AuthUser => {
-    const request = context.switchToHttp().getRequest<Request & { user: AuthUser }>();
+    const request = context
+      .switchToHttp()
+      .getRequest<Request & { user: AuthUser }>();
     return request.user;
   },
 );

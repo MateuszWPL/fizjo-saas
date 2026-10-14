@@ -2,8 +2,12 @@ import { fileURLToPath } from 'node:url';
 import PDFDocument from 'pdfkit';
 
 // wbudowane czcionki pdfkit nie maja polskich znakow, stad wlasny plik TTF
-const regularFont = fileURLToPath(new URL('../../assets/fonts/DejaVuSans.ttf', import.meta.url));
-const boldFont = fileURLToPath(new URL('../../assets/fonts/DejaVuSans-Bold.ttf', import.meta.url));
+const regularFont = fileURLToPath(
+  new URL('../../assets/fonts/DejaVuSans.ttf', import.meta.url),
+);
+const boldFont = fileURLToPath(
+  new URL('../../assets/fonts/DejaVuSans-Bold.ttf', import.meta.url),
+);
 
 export interface PlanPdfData {
   clinicName: string;
@@ -47,10 +51,15 @@ export function renderPlanPdf(plan: PlanPdfData): Promise<Buffer> {
       if (doc.y > doc.page.height - 220) {
         doc.addPage();
       }
-      doc.font('bold').fontSize(12).text(`${index + 1}. ${item.name}`);
+      doc
+        .font('bold')
+        .fontSize(12)
+        .text(`${index + 1}. ${item.name}`);
       doc.font('regular').fontSize(10);
       if (item.sets || item.reps) {
-        doc.text(`Serie: ${item.sets ?? '-'}, powtórzenia: ${item.reps ?? '-'}`);
+        doc.text(
+          `Serie: ${item.sets ?? '-'}, powtórzenia: ${item.reps ?? '-'}`,
+        );
       }
       if (item.image) {
         doc.moveDown(0.3);

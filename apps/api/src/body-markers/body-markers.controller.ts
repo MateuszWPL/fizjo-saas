@@ -19,7 +19,10 @@ export class BodyMarkersController {
   constructor(private readonly markers: BodyMarkersService) {}
 
   @Get()
-  list(@CurrentUser() user: AuthUser, @Param('visitId', ParseUUIDPipe) visitId: string) {
+  list(
+    @CurrentUser() user: AuthUser,
+    @Param('visitId', ParseUUIDPipe) visitId: string,
+  ) {
     return this.markers.listForVisit(user.id, visitId);
   }
 

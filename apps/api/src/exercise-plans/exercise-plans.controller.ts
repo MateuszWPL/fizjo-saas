@@ -42,7 +42,10 @@ export class ExercisePlansController {
   }
 
   @Get('plans/:id/pdf')
-  async pdf(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+  async pdf(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     const pdf = await this.plans.renderPdf(user.id, id);
     return new StreamableFile(pdf, {
       type: 'application/pdf',
@@ -56,7 +59,10 @@ export class ExercisePlansController {
   }
 
   @Delete('plans/:id')
-  remove(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+  remove(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.plans.remove(user.id, id);
   }
 }

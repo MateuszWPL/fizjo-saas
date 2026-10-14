@@ -8,7 +8,13 @@ import { ExercisePlansController } from './exercise-plans.controller.js';
 import { ExercisePlansService } from './exercise-plans.service.js';
 
 @Module({
-  imports: [PrismaModule, ProfilesModule, PatientsModule, StorageModule, MailModule],
+  imports: [
+    PrismaModule,
+    ProfilesModule,
+    PatientsModule,
+    StorageModule,
+    MailModule,
+  ],
   controllers: [ExercisePlansController],
   providers: [ExercisePlansService],
 })

@@ -30,7 +30,10 @@ export class AdminController {
   }
 
   @Post('therapists')
-  createTherapist(@CurrentUser() user: AuthUser, @Body() dto: CreateTherapistDto) {
+  createTherapist(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: CreateTherapistDto,
+  ) {
     return this.admin.createTherapist(user.id, dto);
   }
 

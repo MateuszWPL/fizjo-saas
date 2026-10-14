@@ -24,7 +24,10 @@ export class StorageService {
 
   // brak obrazka nie powinien blokowac wydania zalecen, cwiczenie trafi do PDF bez niego
   async downloadExerciseImage(path: string) {
-    const { data, error } = await this.supabase.getClient().storage.from(BUCKET).download(path);
+    const { data, error } = await this.supabase
+      .getClient()
+      .storage.from(BUCKET)
+      .download(path);
     if (error) {
       return null;
     }

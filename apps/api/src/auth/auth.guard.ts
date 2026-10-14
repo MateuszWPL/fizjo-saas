@@ -25,20 +25,28 @@ export class AuthGuard implements CanActivate {
       throw new Error('Brak SUPABASE_URL w apps/api/.env');
     }
     this.issuer = `${supabaseUrl}/auth/v1`;
-    this.jwks = createRemoteJWKSet(new URL(`${this.issuer}/.well-known/jwks.json`));
+    this.jwks = createRemoteJWKSet(
+      new URL(`${this.issuer}/.well-known/jwks.json`),
+    );
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<Request & { user?: AuthUser }>();
+    const request = context
+      .switchToHttp()
+      .getRequest<Request & { user?: AuthUser }>();
     const header = request.headers.authorization;
     if (!header?.startsWith('Bearer ')) {
       throw new UnauthorizedException();
     }
     let payload;
     try {
-      ({ payload } = await jwtVerify(header.slice('Bearer '.length), this.jwks, {
-        issuer: this.issuer,
-      }));
+      ({ payload } = await jwtVerify(
+        header.slice('Bearer '.length),
+        this.jwks,
+        {
+          issuer: this.issuer,
+        },
+      ));
     } catch {
       throw new UnauthorizedException();
     }

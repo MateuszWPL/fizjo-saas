@@ -45,7 +45,10 @@ export class PatientsController {
   }
 
   @Post(':id/archive')
-  archive(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+  archive(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.patients.archive(user.id, id);
   }
 }

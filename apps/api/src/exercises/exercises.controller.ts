@@ -51,7 +51,10 @@ export class ExercisesController {
   }
 
   @Delete(':id')
-  remove(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+  remove(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
     return this.exercises.remove(user.id, id);
   }
 

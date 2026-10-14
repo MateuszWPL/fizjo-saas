@@ -1,24 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Dumbbell, Plus } from "lucide-react";
+import { EmptyMessage, ErrorMessage, LoadingRows } from "@/components/load-state";
+import { PageHeader } from "@/components/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api";
-import { supabase } from "@/lib/supabase";
 import type { Exercise } from "@/lib/types";
 
 export default function ExercisesPage() {
-  const router = useRouter();
   const [exercises, setExercises] = useState<Exercise[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        router.replace("/login");
-        return;
-      }
       try {
         const response = await apiFetch("/exercises");
         if (!response.ok) {
@@ -31,66 +29,65 @@ export default function ExercisesPage() {
       }
     }
     load();
-  }, [router]);
+  }, []);
 
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-stone-800">Ćwiczenia</h1>
-        <Link
-          href="/exercises/new"
-          className="rounded bg-stone-800 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700"
-        >
-          Dodaj ćwiczenie
-        </Link>
-      </div>
+    <main className="mx-auto max-w-6xl p-6">
+      <PageHeader
+        title="Ćwiczenia"
+        description="Baza ćwiczeń gabinetu, z której układa się zestawy zaleceń dla pacjentów."
+        actions={
+          <Button asChild>
+            <Link href="/exercises/new">
+              <Plus />
+              Dodaj ćwiczenie
+            </Link>
+          </Button>
+        }
+      />
       {error ? (
-        <p className="mt-4 text-sm text-red-700">{error}</p>
+        <ErrorMessage message={error} />
       ) : exercises === null ? (
-        <p className="mt-4 text-sm text-stone-500">Ładowanie...</p>
+        <LoadingRows />
       ) : exercises.length === 0 ? (
-        <p className="mt-4 text-sm text-stone-500">Nie ma jeszcze żadnych ćwiczeń.</p>
+        <Card>
+          <CardContent>
+            <EmptyMessage>Nie ma jeszcze żadnych ćwiczeń.</EmptyMessage>
+          </CardContent>
+        </Card>
       ) : (
-        <table className="mt-4 w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-stone-200 text-stone-500">
-              <th className="py-2 font-medium">Ćwiczenie</th>
-              <th className="py-2 font-medium">Serie x powtórzenia</th>
-            </tr>
-          </thead>
-          <tbody>
-            {exercises.map((exercise) => (
-              <tr key={exercise.id} className="border-b border-stone-100">
-                <td className="py-2">
-                  <span className="flex items-center gap-3">
-                    {exercise.imageUrl ? (
-                      // obrazki z publicznego bucketa, poza domenami next/image
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={exercise.imageUrl}
-                        alt=""
-                        className="h-10 w-10 rounded object-cover"
-                      />
-                    ) : (
-                      <span className="h-10 w-10 rounded bg-stone-100" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {exercises.map((exercise) => (
+            <Link key={exercise.id} href={`/exercises/${exercise.id}/edit`} className="group">
+              <Card className="h-full pt-0 transition-shadow group-hover:shadow-md">
+                {exercise.imageUrl ? (
+                  // obrazki z publicznego bucketa, poza domenami next/image
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={exercise.imageUrl} alt="" className="h-40 w-full object-cover" />
+                ) : (
+                  <div className="flex h-40 items-center justify-center bg-muted text-muted-foreground">
+                    <Dumbbell className="size-8" />
+                  </div>
+                )}
+                <CardContent className="space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <h2 className="font-medium">{exercise.name}</h2>
+                    {exercise.defaultSets && exercise.defaultReps && (
+                      <Badge variant="secondary">
+                        {exercise.defaultSets} x {exercise.defaultReps}
+                      </Badge>
                     )}
-                    <Link
-                      href={`/exercises/${exercise.id}/edit`}
-                      className="text-stone-800 underline hover:text-stone-600"
-                    >
-                      {exercise.name}
-                    </Link>
-                  </span>
-                </td>
-                <td className="py-2 text-stone-700">
-                  {exercise.defaultSets && exercise.defaultReps
-                    ? `${exercise.defaultSets} x ${exercise.defaultReps}`
-                    : "-"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  </div>
+                  {exercise.description && (
+                    <p className="line-clamp-2 text-sm text-muted-foreground">
+                      {exercise.description}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
       )}
     </main>
   );

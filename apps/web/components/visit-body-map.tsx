@@ -1,9 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { Trash2 } from "lucide-react";
 import { BodyMap } from "./body-map";
+import { ErrorMessage } from "./load-state";
+import { PainLegend } from "./pain-legend";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { muscleGroupLabels } from "@/lib/body-map/muscle-groups";
-import { fillsFromMarkers, painColor } from "@/lib/body-map/pain-scale";
+import { fillsFromMarkers, painColor, painTextColor } from "@/lib/body-map/pain-scale";
 import type { BodyMarker } from "@/lib/types";
 
 export interface MarkerFormValues {
@@ -30,7 +37,6 @@ export function VisitBodyMap({ markers, readOnly, onSave, onDelete }: VisitBodyM
   const [error, setError] = useState<string | null>(null);
 
   const groupFills = fillsFromMarkers(markers);
-
   const selectedMarker = markers.find((marker) => marker.muscleGroup === selectedGroup);
 
   function selectGroup(group: string) {
@@ -75,125 +81,140 @@ export function VisitBodyMap({ markers, readOnly, onSave, onDelete }: VisitBodyM
   }
 
   return (
-    <div className="flex flex-wrap gap-8">
-      <BodyMap
-        view="front"
-        groupFills={groupFills}
-        selectedGroup={selectedGroup}
-        onGroupClick={readOnly ? undefined : selectGroup}
-      />
-      <BodyMap
-        view="back"
-        groupFills={groupFills}
-        selectedGroup={selectedGroup}
-        onGroupClick={readOnly ? undefined : selectGroup}
-      />
-      <section className="min-w-64 flex-1">
+    <div className="grid gap-6 lg:grid-cols-[auto_1fr]">
+      <div className="space-y-3">
+        <div className="flex flex-wrap justify-center gap-6">
+          <BodyMap
+            view="front"
+            groupFills={groupFills}
+            selectedGroup={selectedGroup}
+            onGroupClick={readOnly ? undefined : selectGroup}
+          />
+          <BodyMap
+            view="back"
+            groupFills={groupFills}
+            selectedGroup={selectedGroup}
+            onGroupClick={readOnly ? undefined : selectGroup}
+          />
+        </div>
+        <PainLegend />
+      </div>
+      <div className="min-w-64">
         {selectedGroup ? (
-          <div className="max-w-xs">
-            <h3 className="font-medium text-stone-800">{muscleGroupLabels[selectedGroup]}</h3>
-            <label className="mt-3 block text-sm text-stone-700">
-              Natężenie bólu (NRS): {values.painLevel}
-              <input
-                type="range"
-                min={0}
-                max={10}
-                value={values.painLevel}
-                onChange={(e) =>
-                  setValues((current) => ({ ...current, painLevel: Number(e.target.value) }))
-                }
-                className="mt-1 w-full"
-              />
-            </label>
-            <label className="mt-3 block text-sm text-stone-700">
-              Charakter bólu
-              <select
-                value={values.painType}
-                onChange={(e) =>
-                  setValues((current) => ({ ...current, painType: e.target.value }))
-                }
-                className="mt-1 w-full rounded border border-stone-300 px-2 py-1.5 text-sm"
-              >
-                <option value="">Nie określono</option>
+          <div className="space-y-4">
+            <h3 className="font-medium">{muscleGroupLabels[selectedGroup]}</h3>
+            <div className="space-y-2">
+              <Label htmlFor="painLevel">Natężenie bólu (NRS)</Label>
+              <div className="flex items-center gap-3">
+                <input
+                  id="painLevel"
+                  type="range"
+                  min={0}
+                  max={10}
+                  value={values.painLevel}
+                  onChange={(e) =>
+                    setValues((current) => ({ ...current, painLevel: Number(e.target.value) }))
+                  }
+                  className="w-full accent-primary"
+                />
+                <span
+                  className="flex size-8 shrink-0 items-center justify-center rounded-md text-sm font-semibold"
+                  style={{
+                    background: painColor(values.painLevel),
+                    color: painTextColor(values.painLevel),
+                  }}
+                >
+                  {values.painLevel}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Charakter bólu</Label>
+              <div className="flex flex-wrap gap-2">
                 {painTypes.map((type) => (
-                  <option key={type} value={type}>
+                  <Button
+                    key={type}
+                    type="button"
+                    size="sm"
+                    variant={values.painType === type ? "default" : "outline"}
+                    onClick={() =>
+                      setValues((current) => ({
+                        ...current,
+                        painType: current.painType === type ? "" : type,
+                      }))
+                    }
+                  >
                     {type}
-                  </option>
+                  </Button>
                 ))}
-              </select>
-            </label>
-            <label className="mt-3 block text-sm text-stone-700">
-              Notatka
-              <textarea
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="markerNote">Notatka</Label>
+              <Textarea
+                id="markerNote"
                 rows={3}
                 value={values.note}
                 onChange={(e) => setValues((current) => ({ ...current, note: e.target.value }))}
-                className="mt-1 w-full rounded border border-stone-300 px-2 py-1.5 text-sm"
               />
-            </label>
-            {error && <p className="mt-3 text-sm text-red-700">{error}</p>}
-            <div className="mt-4 flex gap-3 text-sm">
-              <button
-                onClick={save}
-                disabled={pending}
-                className="rounded bg-stone-800 px-4 py-2 font-medium text-white hover:bg-stone-700 disabled:opacity-60"
-              >
+            </div>
+            {error && <ErrorMessage message={error} />}
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={save} disabled={pending}>
                 Zapisz
-              </button>
-              {selectedMarker && (
-                <button
-                  onClick={remove}
-                  disabled={pending}
-                  className="text-red-700 underline hover:text-red-800 disabled:opacity-60"
-                >
-                  Usuń
-                </button>
-              )}
-              <button
-                onClick={() => setSelectedGroup(null)}
-                disabled={pending}
-                className="text-stone-500 underline hover:text-stone-700 disabled:opacity-60"
-              >
+              </Button>
+              <Button variant="outline" onClick={() => setSelectedGroup(null)} disabled={pending}>
                 Anuluj
-              </button>
+              </Button>
+              {selectedMarker && (
+                <Button variant="destructive" onClick={remove} disabled={pending}>
+                  <Trash2 />
+                  Usuń
+                </Button>
+              )}
             </div>
           </div>
         ) : (
-          <div>
+          <div className="space-y-3">
             {!readOnly && (
-              <p className="text-sm text-stone-600">Kliknij mięsień, aby oznaczyć ból.</p>
+              <p className="text-sm text-muted-foreground">
+                Kliknij mięsień na sylwetce, żeby oznaczyć ból.
+              </p>
             )}
+            <Separator />
             {markers.length === 0 ? (
-              <p className="mt-2 text-sm text-stone-500">Brak oznaczeń bólu.</p>
+              <p className="text-sm text-muted-foreground">Brak oznaczeń bólu.</p>
             ) : (
-              <ul className="mt-2 space-y-1 text-sm text-stone-700">
+              <ul className="space-y-1">
                 {markers.map((marker) => (
-                  <li key={marker.id} className="flex items-center gap-2">
-                    <span
-                      className="inline-block h-3 w-3 rounded-sm border border-stone-300"
-                      style={{ background: painColor(marker.painLevel) }}
-                    />
-                    {readOnly ? (
-                      <span>{muscleGroupLabels[marker.muscleGroup]}</span>
-                    ) : (
-                      <button
-                        onClick={() => selectGroup(marker.muscleGroup)}
-                        className="underline hover:text-stone-900"
+                  <li key={marker.id}>
+                    <button
+                      type="button"
+                      disabled={readOnly}
+                      onClick={() => selectGroup(marker.muscleGroup)}
+                      className="flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left text-sm enabled:hover:bg-muted"
+                    >
+                      <span
+                        className="flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-semibold"
+                        style={{
+                          background: painColor(marker.painLevel),
+                          color: painTextColor(marker.painLevel),
+                        }}
                       >
-                        {muscleGroupLabels[marker.muscleGroup]}
-                      </button>
-                    )}
-                    <span className="text-stone-500">
-                      NRS {marker.painLevel}
-                      {marker.painType ? `, ${marker.painType}` : ""}
-                    </span>
+                        {marker.painLevel}
+                      </span>
+                      <span className="flex-1">{muscleGroupLabels[marker.muscleGroup]}</span>
+                      {marker.painType && (
+                        <span className="text-muted-foreground">{marker.painType}</span>
+                      )}
+                    </button>
                   </li>
                 ))}
               </ul>
             )}
           </div>
         )}
-      </section>
+      </div>
     </div>
   );
 }

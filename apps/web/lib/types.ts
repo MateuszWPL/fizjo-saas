@@ -1,3 +1,5 @@
+export type Sex = "FEMALE" | "MALE";
+
 export interface BodyMarker {
   id: string;
   muscleGroup: string;
@@ -24,6 +26,7 @@ export interface Me {
 export interface Therapist {
   id: string;
   fullName: string;
+  licenseNumber: string | null;
   role: "OWNER" | "THERAPIST";
   active: boolean;
   email: string | null;
@@ -64,13 +67,33 @@ export interface Visit {
   interview: string | null;
   examination: string | null;
   diagnosis: string | null;
+  icd10Code: string | null;
+  treatment: string | null;
   recommendations: string | null;
   closedAt: string | null;
   therapist: { fullName: string };
 }
 
+export interface VisitAmendment {
+  id: string;
+  content: string;
+  createdAt: string;
+  author: { fullName: string };
+}
+
 export interface VisitDetail extends Visit {
+  therapist: { fullName: string; licenseNumber: string | null };
   patient: { id: string; firstName: string; lastName: string };
+  amendments: VisitAmendment[];
+}
+
+export interface RecentVisit {
+  id: string;
+  visitDate: string;
+  closedAt: string | null;
+  diagnosis: string | null;
+  patient: { id: string; firstName: string; lastName: string };
+  therapist: { fullName: string };
 }
 
 export interface Patient {
@@ -78,6 +101,9 @@ export interface Patient {
   firstName: string;
   lastName: string;
   birthDate: string | null;
+  pesel: string | null;
+  sex: Sex | null;
+  address: string | null;
   phone: string | null;
   email: string | null;
   notes: string | null;

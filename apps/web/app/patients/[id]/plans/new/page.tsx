@@ -1,10 +1,32 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { Plus, X } from "lucide-react";
+import { EmptyMessage, ErrorMessage, LoadingRows } from "@/components/load-state";
+import { NativeSelect } from "@/components/native-select";
+import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import { apiFetch } from "@/lib/api";
-import { supabase } from "@/lib/supabase";
 import type { Exercise } from "@/lib/types";
 
 interface PlanRow {
@@ -14,8 +36,6 @@ interface PlanRow {
   reps: string;
   note: string;
 }
-
-const inputClass = "w-full rounded border border-stone-300 px-2 py-1 text-sm";
 
 export default function NewPlanPage() {
   const router = useRouter();
@@ -29,11 +49,6 @@ export default function NewPlanPage() {
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        router.replace("/login");
-        return;
-      }
       try {
         const response = await apiFetch("/exercises");
         if (!response.ok) {
@@ -46,7 +61,7 @@ export default function NewPlanPage() {
       }
     }
     load();
-  }, [router]);
+  }, []);
 
   // kazde cwiczenie moze byc w zestawie raz, wiec dodane znikaja z listy wyboru
   const available = (exercises ?? []).filter(
@@ -111,125 +126,127 @@ export default function NewPlanPage() {
   }
 
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <Link
-        href={`/patients/${id}`}
-        className="text-sm text-stone-500 underline hover:text-stone-700"
-      >
-        Wróć do pacjenta
-      </Link>
-      <h1 className="mt-2 text-xl font-semibold text-stone-800">Nowy zestaw zaleceń</h1>
+    <main className="mx-auto max-w-6xl space-y-6 p-6">
+      <PageHeader
+        title="Nowy zestaw zaleceń"
+        backHref={`/patients/${id}`}
+        backLabel="Karta pacjenta"
+      />
       {exercises === null ? (
-        error ? (
-          <p className="mt-4 text-sm text-red-700">{error}</p>
-        ) : (
-          <p className="mt-4 text-sm text-stone-500">Ładowanie...</p>
-        )
+        error ? <ErrorMessage message={error} /> : <LoadingRows />
       ) : exercises.length === 0 ? (
-        <p className="mt-4 text-sm text-stone-500">
-          Baza ćwiczeń jest pusta.{" "}
-          <Link href="/exercises/new" className="underline">
-            Dodaj pierwsze ćwiczenie
-          </Link>
-          .
-        </p>
+        <Card>
+          <CardContent>
+            <EmptyMessage>
+              Baza ćwiczeń jest pusta.{" "}
+              <Link href="/exercises/new" className="text-primary underline">
+                Dodaj pierwsze ćwiczenie
+              </Link>
+              .
+            </EmptyMessage>
+          </CardContent>
+        </Card>
       ) : (
         <>
-          <div className="mt-4 flex gap-2">
-            <select
-              value={chosenId}
-              onChange={(e) => setChosenId(e.target.value)}
-              className="rounded border border-stone-300 px-2 py-1.5 text-sm"
-            >
-              <option value="">Wybierz ćwiczenie</option>
-              {available.map((exercise) => (
-                <option key={exercise.id} value={exercise.id}>
-                  {exercise.name}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={addRow}
-              disabled={!chosenId}
-              className="rounded border border-stone-300 px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-100 disabled:opacity-50"
-            >
-              Dodaj
-            </button>
-          </div>
-          {rows.length === 0 ? (
-            <p className="mt-4 text-sm text-stone-500">Zestaw jest pusty.</p>
-          ) : (
-            <table className="mt-4 w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-stone-200 text-stone-500">
-                  <th className="py-2 font-medium">Ćwiczenie</th>
-                  <th className="w-20 py-2 font-medium">Serie</th>
-                  <th className="w-20 py-2 font-medium">Powt.</th>
-                  <th className="py-2 font-medium">Uwagi</th>
-                  <th className="py-2" />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.exerciseId} className="border-b border-stone-100">
-                    <td className="py-2 pr-2 text-stone-800">{row.name}</td>
-                    <td className="py-2 pr-2">
-                      <input
-                        type="number"
-                        min={1}
-                        max={99}
-                        value={row.sets}
-                        onChange={(e) => updateRow(row.exerciseId, "sets", e.target.value)}
-                        className={inputClass}
-                      />
-                    </td>
-                    <td className="py-2 pr-2">
-                      <input
-                        type="number"
-                        min={1}
-                        max={99}
-                        value={row.reps}
-                        onChange={(e) => updateRow(row.exerciseId, "reps", e.target.value)}
-                        className={inputClass}
-                      />
-                    </td>
-                    <td className="py-2 pr-2">
-                      <input
-                        value={row.note}
-                        onChange={(e) => updateRow(row.exerciseId, "note", e.target.value)}
-                        className={inputClass}
-                      />
-                    </td>
-                    <td className="py-2 text-right">
-                      <button
-                        onClick={() => removeRow(row.exerciseId)}
-                        className="text-red-700 underline hover:text-red-800"
-                      >
-                        Usuń
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          <label className="mt-4 block max-w-xl text-sm text-stone-700">
-            Uwagi do całego zestawu
-            <textarea
-              rows={3}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="mt-1 w-full rounded border border-stone-300 px-2 py-1.5 text-sm"
-            />
-          </label>
-          {error && <p className="mt-3 text-sm text-red-700">{error}</p>}
-          <button
-            onClick={save}
-            disabled={pending || rows.length === 0}
-            className="mt-4 rounded bg-stone-800 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700 disabled:opacity-60"
-          >
+          <Card>
+            <CardHeader>
+              <CardTitle>Ćwiczenia w zestawie</CardTitle>
+              <CardDescription>
+                Serie i powtórzenia podpowiadają się z ustawień ćwiczenia, można je zmienić.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                <NativeSelect
+                  value={chosenId}
+                  onChange={(e) => setChosenId(e.target.value)}
+                  className="min-w-64"
+                >
+                  <option value="">Wybierz ćwiczenie</option>
+                  {available.map((exercise) => (
+                    <option key={exercise.id} value={exercise.id}>
+                      {exercise.name}
+                    </option>
+                  ))}
+                </NativeSelect>
+                <Button variant="outline" onClick={addRow} disabled={!chosenId}>
+                  <Plus />
+                  Dodaj do zestawu
+                </Button>
+              </div>
+              {rows.length === 0 ? (
+                <EmptyMessage>Zestaw jest pusty.</EmptyMessage>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ćwiczenie</TableHead>
+                      <TableHead className="w-24">Serie</TableHead>
+                      <TableHead className="w-24">Powt.</TableHead>
+                      <TableHead>Uwagi</TableHead>
+                      <TableHead className="w-10" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow key={row.exerciseId}>
+                        <TableCell className="font-medium">{row.name}</TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={99}
+                            value={row.sets}
+                            onChange={(e) => updateRow(row.exerciseId, "sets", e.target.value)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={99}
+                            value={row.reps}
+                            onChange={(e) => updateRow(row.exerciseId, "reps", e.target.value)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            value={row.note}
+                            onChange={(e) => updateRow(row.exerciseId, "note", e.target.value)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label="Usuń z zestawu"
+                            onClick={() => removeRow(row.exerciseId)}
+                          >
+                            <X />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="space-y-2">
+              <Label htmlFor="note">Uwagi do całego zestawu</Label>
+              <Textarea
+                id="note"
+                rows={3}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </CardContent>
+          </Card>
+          {error && <ErrorMessage message={error} />}
+          <Button onClick={save} disabled={pending || rows.length === 0}>
             {pending ? "Zapisywanie..." : "Zapisz zestaw"}
-          </button>
+          </Button>
         </>
       )}
     </main>

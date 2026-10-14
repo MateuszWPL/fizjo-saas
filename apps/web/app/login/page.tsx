@@ -2,6 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Activity } from "lucide-react";
+import { ErrorMessage } from "@/components/load-state";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
@@ -25,42 +31,44 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-stone-50">
-      <form
-        onSubmit={handleSubmit}
-        className="w-80 rounded border border-stone-200 bg-white p-6"
-      >
-        <h1 className="text-lg font-semibold text-stone-800">Fizjo</h1>
-        <p className="mt-1 text-sm text-stone-600">Zaloguj się do gabinetu.</p>
-        <label className="mt-4 block text-sm text-stone-700">
-          E-mail
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded border border-stone-300 px-2 py-1.5 text-sm"
-          />
-        </label>
-        <label className="mt-3 block text-sm text-stone-700">
-          Hasło
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded border border-stone-300 px-2 py-1.5 text-sm"
-          />
-        </label>
-        {error && <p className="mt-3 text-sm text-red-700">{error}</p>}
-        <button
-          type="submit"
-          disabled={pending}
-          className="mt-4 w-full rounded bg-stone-800 py-2 text-sm font-medium text-white hover:bg-stone-700 disabled:opacity-60"
-        >
-          {pending ? "Logowanie..." : "Zaloguj"}
-        </button>
-      </form>
+    <main className="flex min-h-screen items-center justify-center p-6">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <span className="mb-2 flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <Activity className="size-5" />
+          </span>
+          <CardTitle className="text-xl">Fizjo</CardTitle>
+          <CardDescription>Dokumentacja wizyt gabinetu fizjoterapii.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">E-mail</Label>
+              <Input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Hasło</Label>
+              <Input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            {error && <ErrorMessage message={error} />}
+            <Button type="submit" className="w-full" disabled={pending}>
+              {pending ? "Logowanie..." : "Zaloguj"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </main>
   );
 }

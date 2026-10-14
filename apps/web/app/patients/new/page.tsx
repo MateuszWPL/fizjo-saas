@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import { PatientForm, toPatientPayload, type PatientFormValues } from "@/components/patient-form";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, errorMessage } from "@/lib/api";
 import type { Patient } from "@/lib/types";
 
 export default function NewPatientPage() {
@@ -15,21 +15,16 @@ export default function NewPatientPage() {
       body: JSON.stringify(toPatientPayload(values)),
     });
     if (!response.ok) {
-      throw new Error("Zapis nie powiódł się");
+      throw new Error(await errorMessage(response, "Nie udało się zapisać pacjenta."));
     }
     const patient = (await response.json()) as Patient;
     router.push(`/patients/${patient.id}`);
   }
 
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <Link href="/patients" className="text-sm text-stone-500 underline hover:text-stone-700">
-        Wróć do listy
-      </Link>
-      <h1 className="mt-2 text-xl font-semibold text-stone-800">Nowy pacjent</h1>
-      <div className="mt-4">
-        <PatientForm submitLabel="Dodaj pacjenta" onSave={save} />
-      </div>
+    <main className="mx-auto max-w-6xl p-6">
+      <PageHeader title="Nowy pacjent" backHref="/patients" backLabel="Pacjenci" />
+      <PatientForm submitLabel="Dodaj pacjenta" onSave={save} />
     </main>
   );
 }

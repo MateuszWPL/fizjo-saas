@@ -1,10 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Search, UserPlus } from "lucide-react";
+import { EmptyMessage, ErrorMessage, LoadingRows } from "@/components/load-state";
+import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { apiFetch } from "@/lib/api";
-import { supabase } from "@/lib/supabase";
+import { ageFrom, formatDate } from "@/lib/format";
 import type { Patient } from "@/lib/types";
 
 export default function PatientsPage() {
@@ -15,11 +29,6 @@ export default function PatientsPage() {
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        router.replace("/login");
-        return;
-      }
       try {
         const query = search ? `?search=${encodeURIComponent(search)}` : "";
         const response = await apiFetch(`/patients${query}`);
@@ -34,64 +43,81 @@ export default function PatientsPage() {
       }
     }
     load();
-  }, [search, router]);
+  }, [search]);
 
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-stone-800">Pacjenci</h1>
-        <Link
-          href="/patients/new"
-          className="rounded bg-stone-800 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700"
-        >
-          Dodaj pacjenta
-        </Link>
-      </div>
-      <input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Szukaj po imieniu lub nazwisku"
-        className="mt-4 w-full max-w-sm rounded border border-stone-300 px-2 py-1.5 text-sm"
+    <main className="mx-auto max-w-6xl p-6">
+      <PageHeader
+        title="Pacjenci"
+        description="Aktywni pacjenci gabinetu. Zarchiwizowani nie pojawiają się na liście."
+        actions={
+          <Button asChild>
+            <Link href="/patients/new">
+              <UserPlus />
+              Dodaj pacjenta
+            </Link>
+          </Button>
+        }
       />
-      {error ? (
-        <p className="mt-4 text-sm text-red-700">{error}</p>
-      ) : patients === null ? (
-        <p className="mt-4 text-sm text-stone-500">Ładowanie...</p>
-      ) : patients.length === 0 ? (
-        <p className="mt-4 text-sm text-stone-500">
-          {search ? "Brak wyników dla tego wyszukiwania." : "Nie ma jeszcze żadnych pacjentów."}
-        </p>
-      ) : (
-        <table className="mt-4 w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-stone-200 text-stone-500">
-              <th className="py-2 font-medium">Nazwisko i imię</th>
-              <th className="py-2 font-medium">Data urodzenia</th>
-              <th className="py-2 font-medium">Telefon</th>
-            </tr>
-          </thead>
-          <tbody>
-            {patients.map((patient) => (
-              <tr key={patient.id} className="border-b border-stone-100">
-                <td className="py-2">
-                  <Link
-                    href={`/patients/${patient.id}`}
-                    className="text-stone-800 underline hover:text-stone-600"
+      <Card>
+        <CardContent className="space-y-4">
+          <div className="relative max-w-sm">
+            <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Szukaj po imieniu lub nazwisku"
+              className="pl-8"
+            />
+          </div>
+          {error ? (
+            <ErrorMessage message={error} />
+          ) : patients === null ? (
+            <LoadingRows />
+          ) : patients.length === 0 ? (
+            <EmptyMessage>
+              {search ? "Brak wyników dla tego wyszukiwania." : "Nie ma jeszcze żadnych pacjentów."}
+            </EmptyMessage>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nazwisko i imię</TableHead>
+                  <TableHead>Wiek</TableHead>
+                  <TableHead>PESEL</TableHead>
+                  <TableHead>Telefon</TableHead>
+                  <TableHead>E-mail</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {patients.map((patient) => (
+                  <TableRow
+                    key={patient.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/patients/${patient.id}`)}
                   >
-                    {patient.lastName} {patient.firstName}
-                  </Link>
-                </td>
-                <td className="py-2 text-stone-700">
-                  {patient.birthDate
-                    ? new Date(patient.birthDate).toLocaleDateString("pl-PL")
-                    : "-"}
-                </td>
-                <td className="py-2 text-stone-700">{patient.phone ?? "-"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+                    <TableCell className="font-medium">
+                      {patient.lastName} {patient.firstName}
+                    </TableCell>
+                    <TableCell>
+                      {patient.birthDate ? (
+                        <span title={formatDate(patient.birthDate)}>
+                          {ageFrom(patient.birthDate)} l.
+                        </span>
+                      ) : (
+                        "-"
+                      )}
+                    </TableCell>
+                    <TableCell className="tabular-nums">{patient.pesel ?? "-"}</TableCell>
+                    <TableCell className="tabular-nums">{patient.phone ?? "-"}</TableCell>
+                    <TableCell className="text-muted-foreground">{patient.email ?? "-"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </main>
   );
 }

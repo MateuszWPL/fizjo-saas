@@ -1,10 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { Archive, ClipboardPlus, LineChart, ListPlus, Pencil } from "lucide-react";
+import { ConfirmButton } from "@/components/confirm-button";
+import { EmptyMessage, ErrorMessage, LoadingRows } from "@/components/load-state";
+import { PageHeader } from "@/components/page-header";
+import { VisitStatusBadge } from "@/components/visit-status-badge";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { apiFetch } from "@/lib/api";
-import { supabase } from "@/lib/supabase";
+import { ageFrom, formatDate, sexLabels } from "@/lib/format";
 import type { ExercisePlanSummary, Patient, Visit } from "@/lib/types";
 
 export default function PatientPage() {
@@ -19,11 +35,6 @@ export default function PatientPage() {
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        router.replace("/login");
-        return;
-      }
       try {
         const response = await apiFetch(`/patients/${id}`);
         if (!response.ok) {
@@ -48,180 +59,215 @@ export default function PatientPage() {
       }
     }
     load();
-  }, [id, router]);
+  }, [id]);
 
   async function archive() {
-    if (!window.confirm("Zarchiwizować pacjenta? Zniknie z listy, ale dane zostaną.")) {
-      return;
+    try {
+      const response = await apiFetch(`/patients/${id}/archive`, { method: "POST" });
+      if (!response.ok) {
+        setError("Nie udało się zarchiwizować pacjenta.");
+        return;
+      }
+      router.push("/patients");
+    } catch {
+      setError("Brak połączenia z API.");
     }
-    const response = await apiFetch(`/patients/${id}/archive`, { method: "POST" });
-    if (!response.ok) {
-      setError("Nie udało się zarchiwizować pacjenta.");
-      return;
-    }
-    router.push("/patients");
   }
 
   if (error) {
     return (
-      <main className="mx-auto max-w-4xl p-6">
-        <p className="text-sm text-red-700">{error}</p>
-        <Link href="/patients" className="mt-2 inline-block text-sm text-stone-500 underline">
-          Wróć do listy
-        </Link>
+      <main className="mx-auto max-w-6xl p-6">
+        <PageHeader title="Karta pacjenta" backHref="/patients" backLabel="Pacjenci" />
+        <ErrorMessage message={error} />
       </main>
     );
   }
 
   if (!patient) {
     return (
-      <main className="mx-auto max-w-4xl p-6">
-        <p className="text-sm text-stone-500">Ładowanie...</p>
+      <main className="mx-auto max-w-6xl p-6">
+        <LoadingRows rows={6} />
       </main>
     );
   }
 
+  const details = [
+    ["PESEL", patient.pesel],
+    ["Data urodzenia", patient.birthDate ? formatDate(patient.birthDate) : null],
+    ["Płeć", patient.sex ? sexLabels[patient.sex] : null],
+    ["Telefon", patient.phone],
+    ["E-mail", patient.email],
+    ["Adres", patient.address],
+  ] as const;
+
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <Link href="/patients" className="text-sm text-stone-500 underline hover:text-stone-700">
-        Wróć do listy
-      </Link>
-      <div className="mt-2 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-stone-800">
-          {patient.lastName} {patient.firstName}
-        </h1>
-        <div className="flex gap-3 text-sm">
-          <Link
-            href={`/patients/${patient.id}/history`}
-            className="text-stone-800 underline hover:text-stone-600"
-          >
-            Historia bólu
-          </Link>
-          <Link
-            href={`/patients/${patient.id}/edit`}
-            className="text-stone-800 underline hover:text-stone-600"
-          >
-            Edytuj
-          </Link>
-          <button onClick={archive} className="text-red-700 underline hover:text-red-800">
-            Archiwizuj
-          </button>
-        </div>
-      </div>
-      {patient.archivedAt && (
-        <p className="mt-2 text-sm text-amber-700">Pacjent zarchiwizowany.</p>
-      )}
-      <dl className="mt-4 max-w-md space-y-2 text-sm">
-        <div className="flex justify-between border-b border-stone-100 py-1">
-          <dt className="text-stone-500">Data urodzenia</dt>
-          <dd className="text-stone-800">
-            {patient.birthDate ? new Date(patient.birthDate).toLocaleDateString("pl-PL") : "-"}
-          </dd>
-        </div>
-        <div className="flex justify-between border-b border-stone-100 py-1">
-          <dt className="text-stone-500">Telefon</dt>
-          <dd className="text-stone-800">{patient.phone ?? "-"}</dd>
-        </div>
-        <div className="flex justify-between border-b border-stone-100 py-1">
-          <dt className="text-stone-500">E-mail</dt>
-          <dd className="text-stone-800">{patient.email ?? "-"}</dd>
-        </div>
-      </dl>
-      {patient.notes && (
-        <div className="mt-4 max-w-md">
-          <h2 className="text-sm font-medium text-stone-500">Notatki</h2>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-stone-800">{patient.notes}</p>
-        </div>
-      )}
-      <div className="mt-8">
-        <div className="flex items-center justify-between">
-          <h2 className="font-medium text-stone-800">Wizyty</h2>
-          <Link
-            href={`/patients/${patient.id}/visits/new`}
-            className="rounded bg-stone-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-stone-700"
-          >
-            Dodaj wizytę
-          </Link>
-        </div>
-        {visitsError ? (
-          <p className="mt-2 text-sm text-red-700">{visitsError}</p>
-        ) : visits === null ? (
-          <p className="mt-2 text-sm text-stone-500">Ładowanie...</p>
-        ) : visits.length === 0 ? (
-          <p className="mt-2 text-sm text-stone-500">Nie ma jeszcze żadnych wizyt.</p>
-        ) : (
-          <table className="mt-2 w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-stone-200 text-stone-500">
-                <th className="py-2 font-medium">Data</th>
-                <th className="py-2 font-medium">Terapeuta</th>
-                <th className="py-2 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visits.map((visit) => (
-                <tr key={visit.id} className="border-b border-stone-100">
-                  <td className="py-2">
-                    <Link
-                      href={`/visits/${visit.id}`}
-                      className="text-stone-800 underline hover:text-stone-600"
-                    >
-                      {new Date(visit.visitDate).toLocaleDateString("pl-PL")}
-                    </Link>
-                  </td>
-                  <td className="py-2 text-stone-700">{visit.therapist.fullName}</td>
-                  <td className="py-2 text-stone-700">
-                    {visit.closedAt ? "Zamknięta" : "Otwarta"}
-                  </td>
-                </tr>
+    <main className="mx-auto max-w-6xl p-6">
+      <PageHeader
+        title={`${patient.firstName} ${patient.lastName}`}
+        backHref="/patients"
+        backLabel="Pacjenci"
+        description={
+          <span className="flex flex-wrap gap-2">
+            {patient.birthDate && (
+              <Badge variant="outline">{ageFrom(patient.birthDate)} lat</Badge>
+            )}
+            {patient.sex && <Badge variant="outline">{sexLabels[patient.sex]}</Badge>}
+            {patient.archivedAt && <Badge variant="destructive">Zarchiwizowany</Badge>}
+          </span>
+        }
+        actions={
+          <>
+            <Button variant="outline" asChild>
+              <Link href={`/patients/${patient.id}/history`}>
+                <LineChart />
+                Historia bólu
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href={`/patients/${patient.id}/edit`}>
+                <Pencil />
+                Edytuj
+              </Link>
+            </Button>
+            <ConfirmButton
+              label={
+                <>
+                  <Archive />
+                  Archiwizuj
+                </>
+              }
+              title="Zarchiwizować pacjenta?"
+              description="Pacjent zniknie z listy, ale jego dokumentacja zostanie zachowana."
+              confirmLabel="Archiwizuj"
+              destructive
+              onConfirm={archive}
+            />
+          </>
+        }
+      />
+      <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
+        <Card className="self-start">
+          <CardHeader>
+            <CardTitle>Dane pacjenta</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <dl className="space-y-3 text-sm">
+              {details.map(([label, value]) => (
+                <div key={label}>
+                  <dt className="text-muted-foreground">{label}</dt>
+                  <dd className="font-medium break-words">{value ?? "-"}</dd>
+                </div>
               ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-      <div className="mt-8">
-        <div className="flex items-center justify-between">
-          <h2 className="font-medium text-stone-800">Zestawy zaleceń</h2>
-          <Link
-            href={`/patients/${patient.id}/plans/new`}
-            className="rounded bg-stone-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-stone-700"
-          >
-            Nowy zestaw
-          </Link>
+              {patient.notes && (
+                <div>
+                  <dt className="text-muted-foreground">Notatki</dt>
+                  <dd className="whitespace-pre-wrap">{patient.notes}</dd>
+                </div>
+              )}
+            </dl>
+          </CardContent>
+        </Card>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Wizyty</CardTitle>
+              <CardAction>
+                <Button size="sm" asChild>
+                  <Link href={`/patients/${patient.id}/visits/new`}>
+                    <ClipboardPlus />
+                    Nowa wizyta
+                  </Link>
+                </Button>
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              {visitsError ? (
+                <ErrorMessage message={visitsError} />
+              ) : visits === null ? (
+                <LoadingRows />
+              ) : visits.length === 0 ? (
+                <EmptyMessage>Nie ma jeszcze żadnych wizyt.</EmptyMessage>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Rozpoznanie</TableHead>
+                      <TableHead>Terapeuta</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {visits.map((visit) => (
+                      <TableRow
+                        key={visit.id}
+                        className="cursor-pointer"
+                        onClick={() => router.push(`/visits/${visit.id}`)}
+                      >
+                        <TableCell>{formatDate(visit.visitDate)}</TableCell>
+                        <TableCell className="max-w-56 truncate">
+                          {visit.icd10Code && (
+                            <span className="mr-1 font-medium">{visit.icd10Code}</span>
+                          )}
+                          <span className="text-muted-foreground">{visit.diagnosis ?? "-"}</span>
+                        </TableCell>
+                        <TableCell>{visit.therapist.fullName}</TableCell>
+                        <TableCell>
+                          <VisitStatusBadge closedAt={visit.closedAt} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Zestawy zaleceń</CardTitle>
+              <CardAction>
+                <Button size="sm" variant="outline" asChild>
+                  <Link href={`/patients/${patient.id}/plans/new`}>
+                    <ListPlus />
+                    Nowy zestaw
+                  </Link>
+                </Button>
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              {plansError ? (
+                <ErrorMessage message={plansError} />
+              ) : plans === null ? (
+                <LoadingRows />
+              ) : plans.length === 0 ? (
+                <EmptyMessage>Nie ma jeszcze żadnych zestawów.</EmptyMessage>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Wydano</TableHead>
+                      <TableHead>Terapeuta</TableHead>
+                      <TableHead>Liczba ćwiczeń</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {plans.map((plan) => (
+                      <TableRow
+                        key={plan.id}
+                        className="cursor-pointer"
+                        onClick={() => router.push(`/plans/${plan.id}`)}
+                      >
+                        <TableCell>{formatDate(plan.createdAt)}</TableCell>
+                        <TableCell>{plan.therapist.fullName}</TableCell>
+                        <TableCell>{plan._count.items}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
         </div>
-        {plansError ? (
-          <p className="mt-2 text-sm text-red-700">{plansError}</p>
-        ) : plans === null ? (
-          <p className="mt-2 text-sm text-stone-500">Ładowanie...</p>
-        ) : plans.length === 0 ? (
-          <p className="mt-2 text-sm text-stone-500">Nie ma jeszcze żadnych zestawów.</p>
-        ) : (
-          <table className="mt-2 w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-stone-200 text-stone-500">
-                <th className="py-2 font-medium">Wydano</th>
-                <th className="py-2 font-medium">Terapeuta</th>
-                <th className="py-2 font-medium">Liczba ćwiczeń</th>
-              </tr>
-            </thead>
-            <tbody>
-              {plans.map((plan) => (
-                <tr key={plan.id} className="border-b border-stone-100">
-                  <td className="py-2">
-                    <Link
-                      href={`/plans/${plan.id}`}
-                      className="text-stone-800 underline hover:text-stone-600"
-                    >
-                      {new Date(plan.createdAt).toLocaleDateString("pl-PL")}
-                    </Link>
-                  </td>
-                  <td className="py-2 text-stone-700">{plan.therapist.fullName}</td>
-                  <td className="py-2 text-stone-700">{plan._count.items}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
       </div>
     </main>
   );

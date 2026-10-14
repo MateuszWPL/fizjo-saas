@@ -1,9 +1,9 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 import { VisitForm, toVisitPayload, type VisitFormValues } from "@/components/visit-form";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, errorMessage } from "@/lib/api";
 
 // toISOString liczy w UTC, wiec tuz po polnocy dawalby wczorajsza date
 function todayLocal() {
@@ -22,6 +22,8 @@ export default function NewVisitPage() {
     interview: "",
     examination: "",
     diagnosis: "",
+    icd10Code: "",
+    treatment: "",
     recommendations: "",
   };
 
@@ -31,24 +33,16 @@ export default function NewVisitPage() {
       body: JSON.stringify(toVisitPayload(values)),
     });
     if (!response.ok) {
-      throw new Error("Zapis nie powiódł się");
+      throw new Error(await errorMessage(response, "Nie udało się zapisać wizyty."));
     }
     const visit = (await response.json()) as { id: string };
     router.push(`/visits/${visit.id}`);
   }
 
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <Link
-        href={`/patients/${id}`}
-        className="text-sm text-stone-500 underline hover:text-stone-700"
-      >
-        Wróć do pacjenta
-      </Link>
-      <h1 className="mt-2 text-xl font-semibold text-stone-800">Nowa wizyta</h1>
-      <div className="mt-4">
-        <VisitForm initial={initial} submitLabel="Dodaj wizytę" onSave={save} />
-      </div>
+    <main className="mx-auto max-w-6xl p-6">
+      <PageHeader title="Nowa wizyta" backHref={`/patients/${id}`} backLabel="Karta pacjenta" />
+      <VisitForm initial={initial} submitLabel="Zapisz wizytę" onSave={save} />
     </main>
   );
 }

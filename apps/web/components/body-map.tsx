@@ -35,7 +35,7 @@ export function BodyMap({ view, groupFills, selectedGroup, onGroupClick }: BodyM
         viewBox={viewBox}
         role="img"
         aria-label={view === "front" ? "Mapa ciała, przód" : "Mapa ciała, tył"}
-        className="h-[70vh] w-auto"
+        className="h-[440px] w-auto"
         onMouseLeave={() => setHoveredGroup(null)}
       >
         {paths.map(({ d, group }, i) => (
@@ -51,8 +51,12 @@ export function BodyMap({ view, groupFills, selectedGroup, onGroupClick }: BodyM
           />
         ))}
       </svg>
-      <figcaption className="mt-1 min-h-5 text-center text-sm text-stone-600">
-        {hoveredGroup ? muscleGroupLabels[hoveredGroup] : ""}
+      <figcaption className="mt-1 min-h-5 text-center text-sm">
+        {hoveredGroup ? (
+          <span className="font-medium">{muscleGroupLabels[hoveredGroup]}</span>
+        ) : (
+          <span className="text-muted-foreground">{view === "front" ? "Przód" : "Tył"}</span>
+        )}
       </figcaption>
     </figure>
   );

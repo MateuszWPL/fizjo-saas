@@ -1,10 +1,30 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { UserPlus } from "lucide-react";
+import { ConfirmButton } from "@/components/confirm-button";
+import { ErrorMessage, LoadingRows } from "@/components/load-state";
+import { PageHeader } from "@/components/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { apiFetch } from "@/lib/api";
-import { supabase } from "@/lib/supabase";
 import type { Therapist } from "@/lib/types";
 
 interface Stats {
@@ -12,14 +32,13 @@ interface Stats {
   visitsThisMonth: number;
 }
 
-const inputClass = "mt-1 w-full rounded border border-stone-300 px-2 py-1.5 text-sm";
+const emptyForm = { fullName: "", email: "", licenseNumber: "", password: "" };
 
 export default function AdminPage() {
-  const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
   const [therapists, setTherapists] = useState<Therapist[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({ fullName: "", email: "", password: "" });
+  const [form, setForm] = useState(emptyForm);
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -34,11 +53,6 @@ export default function AdminPage() {
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        router.replace("/login");
-        return;
-      }
       try {
         const response = await apiFetch("/admin/stats");
         if (response.status === 403) {
@@ -56,23 +70,23 @@ export default function AdminPage() {
       }
     }
     load();
-  }, [router, loadTherapists]);
+  }, [loadTherapists]);
 
   async function toggleActive(therapist: Therapist) {
-    const action = therapist.active ? "Dezaktywować" : "Przywrócić";
-    if (!window.confirm(`${action} konto ${therapist.fullName}?`)) {
-      return;
-    }
     setError(null);
-    const response = await apiFetch(`/admin/therapists/${therapist.id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ active: !therapist.active }),
-    });
-    if (!response.ok) {
-      setError("Nie udało się zmienić statusu konta.");
-      return;
+    try {
+      const response = await apiFetch(`/admin/therapists/${therapist.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ active: !therapist.active }),
+      });
+      if (!response.ok) {
+        setError("Nie udało się zmienić statusu konta.");
+        return;
+      }
+      await loadTherapists();
+    } catch {
+      setError("Brak połączenia z API.");
     }
-    await loadTherapists();
   }
 
   async function createTherapist(event: React.FormEvent<HTMLFormElement>) {
@@ -82,7 +96,7 @@ export default function AdminPage() {
     try {
       const response = await apiFetch("/admin/therapists", {
         method: "POST",
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, licenseNumber: form.licenseNumber || null }),
       });
       if (response.status === 409) {
         setFormError("Konto z tym adresem e-mail już istnieje.");
@@ -91,7 +105,7 @@ export default function AdminPage() {
       } else if (!response.ok) {
         setFormError("Nie udało się założyć konta.");
       } else {
-        setForm({ fullName: "", email: "", password: "" });
+        setForm(emptyForm);
         await loadTherapists();
       }
     } catch {
@@ -100,112 +114,156 @@ export default function AdminPage() {
     setPending(false);
   }
 
+  function setField(field: keyof typeof emptyForm, value: string) {
+    setForm((current) => ({ ...current, [field]: value }));
+  }
+
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <Link href="/" className="text-sm text-stone-500 underline hover:text-stone-700">
-        Wróć do strony głównej
-      </Link>
-      <h1 className="mt-2 text-xl font-semibold text-stone-800">Panel gabinetu</h1>
-      {error && <p className="mt-4 text-sm text-red-700">{error}</p>}
-      {!error && stats === null && <p className="mt-4 text-sm text-stone-500">Ładowanie...</p>}
+    <main className="mx-auto max-w-6xl space-y-6 p-6">
+      <PageHeader title="Panel gabinetu" description="Konta terapeutów i podstawowe liczniki." />
+      {error && <ErrorMessage message={error} />}
       {stats && (
-        <dl className="mt-4 flex gap-10 text-sm">
-          <div>
-            <dt className="text-stone-500">Aktywni pacjenci</dt>
-            <dd className="text-2xl font-semibold text-stone-800">{stats.patients}</dd>
-          </div>
-          <div>
-            <dt className="text-stone-500">Wizyty w tym miesiącu</dt>
-            <dd className="text-2xl font-semibold text-stone-800">{stats.visitsThisMonth}</dd>
-          </div>
-        </dl>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardDescription>Aktywni pacjenci</CardDescription>
+              <CardTitle className="text-3xl font-semibold tabular-nums">{stats.patients}</CardTitle>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardDescription>Wizyty w tym miesiącu</CardDescription>
+              <CardTitle className="text-3xl font-semibold tabular-nums">
+                {stats.visitsThisMonth}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+        </div>
       )}
-      {therapists && (
-        <>
-          <h2 className="mt-8 font-medium text-stone-800">Konta terapeutów</h2>
-          <table className="mt-2 w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-stone-200 text-stone-500">
-                <th className="py-2 font-medium">Imię i nazwisko</th>
-                <th className="py-2 font-medium">E-mail</th>
-                <th className="py-2 font-medium">Rola</th>
-                <th className="py-2 font-medium">Status</th>
-                <th className="py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {therapists.map((therapist) => (
-                <tr key={therapist.id} className="border-b border-stone-100">
-                  <td className="py-2 text-stone-800">{therapist.fullName}</td>
-                  <td className="py-2 text-stone-700">{therapist.email ?? "-"}</td>
-                  <td className="py-2 text-stone-700">
-                    {therapist.role === "OWNER" ? "właściciel" : "terapeuta"}
-                  </td>
-                  <td className="py-2 text-stone-700">
-                    {therapist.active ? "aktywne" : "dezaktywowane"}
-                  </td>
-                  <td className="py-2 text-right">
-                    {therapist.role === "THERAPIST" && (
-                      <button
-                        onClick={() => toggleActive(therapist)}
-                        className={
-                          therapist.active
-                            ? "text-red-700 underline hover:text-red-800"
-                            : "text-stone-800 underline hover:text-stone-600"
-                        }
-                      >
-                        {therapist.active ? "Dezaktywuj" : "Przywróć"}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <h2 className="mt-8 font-medium text-stone-800">Nowe konto terapeuty</h2>
-          <p className="mt-1 text-sm text-stone-500">
-            Przekaż terapeucie e-mail i hasło startowe, zaloguje się nimi od razu.
-          </p>
-          <form onSubmit={createTherapist} className="mt-3 max-w-md">
-            <label className="block text-sm text-stone-700">
-              Imię i nazwisko
-              <input
-                required
-                value={form.fullName}
-                onChange={(e) => setForm((current) => ({ ...current, fullName: e.target.value }))}
-                className={inputClass}
-              />
-            </label>
-            <label className="mt-3 block text-sm text-stone-700">
-              E-mail
-              <input
-                type="email"
-                required
-                value={form.email}
-                onChange={(e) => setForm((current) => ({ ...current, email: e.target.value }))}
-                className={inputClass}
-              />
-            </label>
-            <label className="mt-3 block text-sm text-stone-700">
-              Hasło startowe (min. 8 znaków)
-              <input
-                required
-                minLength={8}
-                value={form.password}
-                onChange={(e) => setForm((current) => ({ ...current, password: e.target.value }))}
-                className={inputClass}
-              />
-            </label>
-            {formError && <p className="mt-3 text-sm text-red-700">{formError}</p>}
-            <button
-              type="submit"
-              disabled={pending}
-              className="mt-4 rounded bg-stone-800 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700 disabled:opacity-60"
-            >
-              {pending ? "Zakładanie..." : "Załóż konto"}
-            </button>
-          </form>
-        </>
+      {!error && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Konta terapeutów</CardTitle>
+            <CardDescription>
+              Dezaktywowane konto traci dostęp do danych gabinetu, a jego wpisy zostają.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {therapists === null ? (
+              <LoadingRows />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Imię i nazwisko</TableHead>
+                    <TableHead>E-mail</TableHead>
+                    <TableHead>PWZFz</TableHead>
+                    <TableHead>Rola</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {therapists.map((therapist) => (
+                    <TableRow key={therapist.id}>
+                      <TableCell className="font-medium">{therapist.fullName}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {therapist.email ?? "-"}
+                      </TableCell>
+                      <TableCell className="tabular-nums">{therapist.licenseNumber ?? "-"}</TableCell>
+                      <TableCell>
+                        {therapist.role === "OWNER" ? "właściciel" : "terapeuta"}
+                      </TableCell>
+                      <TableCell>
+                        {therapist.active ? (
+                          <Badge variant="secondary">aktywne</Badge>
+                        ) : (
+                          <Badge variant="destructive">dezaktywowane</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {therapist.role === "THERAPIST" && (
+                          <ConfirmButton
+                            label={therapist.active ? "Dezaktywuj" : "Przywróć"}
+                            title={
+                              therapist.active ? "Dezaktywować konto?" : "Przywrócić konto?"
+                            }
+                            description={`Konto: ${therapist.fullName}.`}
+                            confirmLabel={therapist.active ? "Dezaktywuj" : "Przywróć"}
+                            destructive={therapist.active}
+                            onConfirm={() => toggleActive(therapist)}
+                          />
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      )}
+      {!error && therapists && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Nowe konto terapeuty</CardTitle>
+            <CardDescription>
+              Przekaż terapeucie e-mail i hasło startowe, zaloguje się nimi od razu.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={createTherapist} className="grid max-w-2xl gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Imię i nazwisko</Label>
+                <Input
+                  id="fullName"
+                  required
+                  value={form.fullName}
+                  onChange={(e) => setField("fullName", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="licenseNumber">Numer PWZFz</Label>
+                <Input
+                  id="licenseNumber"
+                  value={form.licenseNumber}
+                  onChange={(e) => setField("licenseNumber", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  value={form.email}
+                  onChange={(e) => setField("email", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Hasło startowe (min. 8 znaków)</Label>
+                <Input
+                  id="password"
+                  required
+                  minLength={8}
+                  value={form.password}
+                  onChange={(e) => setField("password", e.target.value)}
+                />
+              </div>
+              {formError && (
+                <div className="sm:col-span-2">
+                  <ErrorMessage message={formError} />
+                </div>
+              )}
+              <div className="sm:col-span-2">
+                <Button type="submit" disabled={pending}>
+                  <UserPlus />
+                  {pending ? "Zakładanie..." : "Załóż konto"}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       )}
     </main>
   );

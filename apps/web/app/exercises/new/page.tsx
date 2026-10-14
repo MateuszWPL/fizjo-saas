@@ -1,14 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   ExerciseForm,
   toExercisePayload,
   uploadExerciseImage,
   type ExerciseFormValues,
 } from "@/components/exercise-form";
-import { apiFetch } from "@/lib/api";
+import { PageHeader } from "@/components/page-header";
+import { apiFetch, errorMessage } from "@/lib/api";
 
 export default function NewExercisePage() {
   const router = useRouter();
@@ -19,7 +19,7 @@ export default function NewExercisePage() {
       body: JSON.stringify(toExercisePayload(values)),
     });
     if (!response.ok) {
-      throw new Error("Zapis nie powiódł się");
+      throw new Error(await errorMessage(response, "Nie udało się zapisać ćwiczenia."));
     }
     const exercise = (await response.json()) as { id: string };
     if (file) {
@@ -29,14 +29,9 @@ export default function NewExercisePage() {
   }
 
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <Link href="/exercises" className="text-sm text-stone-500 underline hover:text-stone-700">
-        Wróć do listy
-      </Link>
-      <h1 className="mt-2 text-xl font-semibold text-stone-800">Nowe ćwiczenie</h1>
-      <div className="mt-4">
-        <ExerciseForm submitLabel="Dodaj ćwiczenie" onSave={save} />
-      </div>
+    <main className="mx-auto max-w-6xl p-6">
+      <PageHeader title="Nowe ćwiczenie" backHref="/exercises" backLabel="Ćwiczenia" />
+      <ExerciseForm submitLabel="Dodaj ćwiczenie" onSave={save} />
     </main>
   );
 }

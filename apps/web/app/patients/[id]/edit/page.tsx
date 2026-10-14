@@ -2,10 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { PatientForm, toPatientPayload, type PatientFormValues } from "@/components/patient-form";
-import { apiFetch } from "@/lib/api";
-import { supabase } from "@/lib/supabase";
+import { ErrorMessage, LoadingRows } from "@/components/load-state";
+import { PageHeader } from "@/components/page-header";
+import {
+  PatientForm,
+  patientToFormValues,
+  toPatientPayload,
+  type PatientFormValues,
+} from "@/components/patient-form";
+import { apiFetch, errorMessage } from "@/lib/api";
 import type { Patient } from "@/lib/types";
 
 export default function EditPatientPage() {
@@ -16,32 +21,19 @@ export default function EditPatientPage() {
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        router.replace("/login");
-        return;
-      }
       try {
         const response = await apiFetch(`/patients/${id}`);
         if (!response.ok) {
           setError("Nie znaleziono pacjenta.");
           return;
         }
-        const patient = (await response.json()) as Patient;
-        setInitial({
-          firstName: patient.firstName,
-          lastName: patient.lastName,
-          birthDate: patient.birthDate ? patient.birthDate.slice(0, 10) : "",
-          phone: patient.phone ?? "",
-          email: patient.email ?? "",
-          notes: patient.notes ?? "",
-        });
+        setInitial(patientToFormValues((await response.json()) as Patient));
       } catch {
         setError("Brak połączenia z API.");
       }
     }
     load();
-  }, [id, router]);
+  }, [id]);
 
   async function save(values: PatientFormValues) {
     const response = await apiFetch(`/patients/${id}`, {
@@ -49,29 +41,21 @@ export default function EditPatientPage() {
       body: JSON.stringify(toPatientPayload(values)),
     });
     if (!response.ok) {
-      throw new Error("Zapis nie powiódł się");
+      throw new Error(await errorMessage(response, "Nie udało się zapisać zmian."));
     }
     router.push(`/patients/${id}`);
   }
 
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <Link
-        href={`/patients/${id}`}
-        className="text-sm text-stone-500 underline hover:text-stone-700"
-      >
-        Wróć do pacjenta
-      </Link>
-      <h1 className="mt-2 text-xl font-semibold text-stone-800">Edycja pacjenta</h1>
-      <div className="mt-4">
-        {error ? (
-          <p className="text-sm text-red-700">{error}</p>
-        ) : initial === null ? (
-          <p className="text-sm text-stone-500">Ładowanie...</p>
-        ) : (
-          <PatientForm initial={initial} submitLabel="Zapisz zmiany" onSave={save} />
-        )}
-      </div>
+    <main className="mx-auto max-w-6xl p-6">
+      <PageHeader title="Edycja pacjenta" backHref={`/patients/${id}`} backLabel="Karta pacjenta" />
+      {error ? (
+        <ErrorMessage message={error} />
+      ) : initial === null ? (
+        <LoadingRows rows={6} />
+      ) : (
+        <PatientForm initial={initial} submitLabel="Zapisz zmiany" onSave={save} />
+      )}
     </main>
   );
 }

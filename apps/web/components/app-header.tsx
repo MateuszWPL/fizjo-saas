@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { Activity, Building2, Dumbbell, LayoutDashboard, LogOut, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import type { Me } from "@/lib/types";
@@ -15,7 +17,7 @@ export function AppHeader() {
   useEffect(() => {
     async function load() {
       const { data } = await supabase.auth.getSession();
-      if (!data.session) {
+      if (!data.session || pathname === "/login") {
         setMe(null);
         return;
       }
@@ -40,36 +42,41 @@ export function AppHeader() {
   }
 
   const links = [
-    { href: "/patients", label: "Pacjenci" },
-    { href: "/exercises", label: "Ćwiczenia" },
-    ...(me.role === "OWNER" ? [{ href: "/admin", label: "Panel gabinetu" }] : []),
+    { href: "/", label: "Pulpit", icon: LayoutDashboard },
+    { href: "/patients", label: "Pacjenci", icon: Users },
+    { href: "/exercises", label: "Ćwiczenia", icon: Dumbbell },
+    ...(me.role === "OWNER" ? [{ href: "/admin", label: "Gabinet", icon: Building2 }] : []),
   ];
 
   return (
-    <header className="border-b border-stone-200 bg-white">
-      <div className="mx-auto flex max-w-5xl items-center gap-6 px-6 py-3 text-sm">
-        <Link href="/" className="font-semibold text-stone-800">
+    <header className="sticky top-0 z-10 border-b bg-card/95 backdrop-blur">
+      <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-6">
+        <Link href="/" className="flex items-center gap-2 font-semibold">
+          <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <Activity className="size-4" />
+          </span>
           {me.clinic.name}
         </Link>
-        <nav className="flex gap-4">
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={
-                pathname.startsWith(link.href)
-                  ? "font-medium text-stone-900"
-                  : "text-stone-500 hover:text-stone-800"
-              }
-            >
-              {link.label}
-            </Link>
-          ))}
+        <nav className="flex items-center gap-1">
+          {links.map(({ href, label, icon: Icon }) => {
+            const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+            return (
+              <Button key={href} variant={active ? "secondary" : "ghost"} size="sm" asChild>
+                <Link href={href}>
+                  <Icon />
+                  {label}
+                </Link>
+              </Button>
+            );
+          })}
         </nav>
-        <span className="ml-auto text-stone-500">{me.fullName}</span>
-        <button onClick={logout} className="text-stone-500 underline hover:text-stone-800">
-          Wyloguj
-        </button>
+        <div className="ml-auto flex items-center gap-3 text-sm">
+          <span className="text-muted-foreground">{me.fullName}</span>
+          <Button variant="ghost" size="sm" onClick={logout}>
+            <LogOut />
+            Wyloguj
+          </Button>
+        </div>
       </div>
     </header>
   );

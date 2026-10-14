@@ -1,29 +1,41 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { visitFields } from "@/components/visit-form";
+import { useParams } from "next/navigation";
+import { Lock, Pencil } from "lucide-react";
+import { ConfirmButton } from "@/components/confirm-button";
+import { ErrorMessage, LoadingRows } from "@/components/load-state";
+import { PageHeader } from "@/components/page-header";
 import { VisitBodyMap, type MarkerFormValues } from "@/components/visit-body-map";
-import { apiFetch } from "@/lib/api";
-import { supabase } from "@/lib/supabase";
-import type { BodyMarker, VisitDetail } from "@/lib/types";
+import { visitFields } from "@/components/visit-form";
+import { VisitStatusBadge } from "@/components/visit-status-badge";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { apiFetch, errorMessage } from "@/lib/api";
+import { formatDate } from "@/lib/format";
+import type { BodyMarker, VisitAmendment, VisitDetail } from "@/lib/types";
 
 export default function VisitPage() {
-  const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const [visit, setVisit] = useState<VisitDetail | null>(null);
   const [markers, setMarkers] = useState<BodyMarker[] | null>(null);
   const [markersError, setMarkersError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [amendment, setAmendment] = useState("");
+  const [amendmentError, setAmendmentError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        router.replace("/login");
-        return;
-      }
       try {
         const response = await apiFetch(`/visits/${id}`);
         if (!response.ok) {
@@ -42,19 +54,20 @@ export default function VisitPage() {
       }
     }
     load();
-  }, [id, router]);
+  }, [id]);
 
   async function close() {
-    if (!window.confirm("Zamknąć wizytę? Zamkniętej wizyty nie da się już edytować.")) {
-      return;
+    try {
+      const response = await apiFetch(`/visits/${id}/close`, { method: "POST" });
+      if (!response.ok) {
+        setError("Nie udało się zamknąć wizyty.");
+        return;
+      }
+      const updated = (await response.json()) as { closedAt: string | null };
+      setVisit((current) => (current ? { ...current, closedAt: updated.closedAt } : current));
+    } catch {
+      setError("Brak połączenia z API.");
     }
-    const response = await apiFetch(`/visits/${id}/close`, { method: "POST" });
-    if (!response.ok) {
-      setError("Nie udało się zamknąć wizyty.");
-      return;
-    }
-    const updated = (await response.json()) as { closedAt: string | null };
-    setVisit((current) => (current ? { ...current, closedAt: updated.closedAt } : current));
   }
 
   async function saveMarker(group: string, values: MarkerFormValues) {
@@ -89,86 +102,173 @@ export default function VisitPage() {
     );
   }
 
-  if (error) {
+  async function addAmendment(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setAmendmentError(null);
+    try {
+      const response = await apiFetch(`/visits/${id}/amendments`, {
+        method: "POST",
+        body: JSON.stringify({ content: amendment }),
+      });
+      if (!response.ok) {
+        setAmendmentError(await errorMessage(response, "Nie udało się dodać adnotacji."));
+        return;
+      }
+      const saved = (await response.json()) as VisitAmendment;
+      setVisit((current) =>
+        current ? { ...current, amendments: [...current.amendments, saved] } : current,
+      );
+      setAmendment("");
+    } catch {
+      setAmendmentError("Brak połączenia z API.");
+    }
+  }
+
+  if (error && !visit) {
     return (
-      <main className="mx-auto max-w-4xl p-6">
-        <p className="text-sm text-red-700">{error}</p>
-        <Link href="/patients" className="mt-2 inline-block text-sm text-stone-500 underline">
-          Wróć do pacjentów
-        </Link>
+      <main className="mx-auto max-w-6xl p-6">
+        <PageHeader title="Karta wizyty" backHref="/patients" backLabel="Pacjenci" />
+        <ErrorMessage message={error} />
       </main>
     );
   }
 
   if (!visit) {
     return (
-      <main className="mx-auto max-w-4xl p-6">
-        <p className="text-sm text-stone-500">Ładowanie...</p>
+      <main className="mx-auto max-w-6xl p-6">
+        <LoadingRows rows={8} />
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-4xl p-6">
-      <Link
-        href={`/patients/${visit.patient.id}`}
-        className="text-sm text-stone-500 underline hover:text-stone-700"
-      >
-        Wróć do pacjenta
-      </Link>
-      <div className="mt-2 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-stone-800">
-          Wizyta {new Date(visit.visitDate).toLocaleDateString("pl-PL")}
-        </h1>
-        {!visit.closedAt && (
-          <div className="flex gap-3 text-sm">
-            <Link
-              href={`/visits/${visit.id}/edit`}
-              className="text-stone-800 underline hover:text-stone-600"
-            >
-              Edytuj
-            </Link>
-            <button onClick={close} className="text-red-700 underline hover:text-red-800">
-              Zamknij wizytę
-            </button>
-          </div>
-        )}
-      </div>
-      <p className="mt-1 text-sm text-stone-600">
-        {visit.patient.lastName} {visit.patient.firstName}, prowadzi {visit.therapist.fullName}
-      </p>
-      {visit.closedAt && (
-        <p className="mt-2 text-sm text-amber-700">
-          Wizyta zamknięta {new Date(visit.closedAt).toLocaleDateString("pl-PL")}, wpis
-          niemodyfikowalny.
-        </p>
-      )}
-      <div className="mt-4 max-w-xl space-y-4">
-        {visitFields.map(([field, label]) => (
-          <section key={field}>
-            <h2 className="text-sm font-medium text-stone-500">{label}</h2>
-            <p className="mt-1 whitespace-pre-wrap text-sm text-stone-800">
-              {visit[field] || "-"}
-            </p>
-          </section>
-        ))}
-      </div>
-      <div className="mt-8">
-        <h2 className="font-medium text-stone-800">Mapa bólu</h2>
-        {markersError ? (
-          <p className="mt-2 text-sm text-red-700">{markersError}</p>
-        ) : markers === null ? (
-          <p className="mt-2 text-sm text-stone-500">Ładowanie...</p>
-        ) : (
-          <div className="mt-4">
+    <main className="mx-auto max-w-6xl space-y-6 p-6">
+      <PageHeader
+        title={`Wizyta ${formatDate(visit.visitDate)}`}
+        backHref={`/patients/${visit.patient.id}`}
+        backLabel={`${visit.patient.firstName} ${visit.patient.lastName}`}
+        description={
+          <span className="flex flex-wrap items-center gap-2">
+            <VisitStatusBadge closedAt={visit.closedAt} />
+            <span>
+              prowadzi {visit.therapist.fullName}
+              {visit.therapist.licenseNumber && `, PWZFz ${visit.therapist.licenseNumber}`}
+            </span>
+          </span>
+        }
+        actions={
+          !visit.closedAt && (
+            <>
+              <Button variant="outline" asChild>
+                <Link href={`/visits/${visit.id}/edit`}>
+                  <Pencil />
+                  Edytuj
+                </Link>
+              </Button>
+              <ConfirmButton
+                label={
+                  <>
+                    <Lock />
+                    Zamknij wizytę
+                  </>
+                }
+                title="Zamknąć wizytę?"
+                description="Zamknięta wizyta staje się wpisem niemodyfikowalnym. Późniejsze poprawki można dodać tylko jako adnotacje z autorem i datą."
+                confirmLabel="Zamknij wizytę"
+                onConfirm={close}
+              />
+            </>
+          )
+        }
+      />
+      {error && <ErrorMessage message={error} />}
+      <Card>
+        <CardHeader>
+          <CardTitle>Mapa bólu</CardTitle>
+          <CardDescription>
+            {visit.closedAt
+              ? "Wizyta jest zamknięta, mapa jest tylko do odczytu."
+              : "Zaznacz bolesne mięśnie i oceń natężenie bólu w skali NRS."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {markersError ? (
+            <ErrorMessage message={markersError} />
+          ) : markers === null ? (
+            <LoadingRows rows={4} />
+          ) : (
             <VisitBodyMap
               markers={markers}
               readOnly={Boolean(visit.closedAt)}
               onSave={saveMarker}
               onDelete={deleteMarker}
             />
-          </div>
-        )}
+          )}
+        </CardContent>
+      </Card>
+      <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Opis wizyty</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {visitFields.map(([field, label]) => (
+              <section key={field}>
+                <h3 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  {label}
+                  {field === "diagnosis" && visit.icd10Code && (
+                    <Badge variant="outline">ICD-10 {visit.icd10Code}</Badge>
+                  )}
+                </h3>
+                <p className="mt-1 text-sm whitespace-pre-wrap">{visit[field] || "-"}</p>
+              </section>
+            ))}
+          </CardContent>
+        </Card>
+        <Card className="self-start">
+          <CardHeader>
+            <CardTitle>Adnotacje</CardTitle>
+            <CardDescription>
+              Poprawki do zamkniętej wizyty. Treść wpisu się nie zmienia, adnotacja go uzupełnia.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {visit.amendments.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Brak adnotacji.</p>
+            ) : (
+              <ul className="space-y-3">
+                {visit.amendments.map((item) => (
+                  <li key={item.id} className="rounded-md border p-3 text-sm">
+                    <p className="whitespace-pre-wrap">{item.content}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {item.author.fullName}, {new Date(item.createdAt).toLocaleString("pl-PL")}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {visit.closedAt ? (
+              <form onSubmit={addAmendment} className="space-y-2">
+                <Label htmlFor="amendment">Nowa adnotacja</Label>
+                <Textarea
+                  id="amendment"
+                  rows={3}
+                  required
+                  value={amendment}
+                  onChange={(e) => setAmendment(e.target.value)}
+                />
+                {amendmentError && <ErrorMessage message={amendmentError} />}
+                <Button type="submit" size="sm">
+                  Dodaj adnotację
+                </Button>
+              </form>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Otwartą wizytę poprawia się w edycji. Adnotacje dodaje się po zamknięciu.
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </main>
   );

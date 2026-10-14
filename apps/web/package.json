@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "build:body-map": "node scripts/build-body-map.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.114.0",

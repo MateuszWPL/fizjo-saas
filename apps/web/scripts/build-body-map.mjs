@@ -10,6 +10,15 @@ const assignment = JSON.parse(readFileSync(new URL("muscle-assignment.json", sou
 // pelnoekranowe tlo z eksportu grafiki, nie nalezy do sylwetki
 const backgroundPaths = { front: 121, back: 77 };
 
+// Grafika nie ma osobnych sciezek dla prostownikow grzbietu w odcinku
+// ledzwiowym, w tym miejscu widac tylko kontur sylwetki. Dorysowujemy dwie
+// polowki tuz nad konturem (os kregoslupa x=298), wiec ich nadmiar przykrywaja
+// rysowane pozniej miesnie najszersze, skosne i posladkowe.
+const lumbarPaths = [
+  { d: "M298 320 L240 380 L215 470 L250 545 L298 545 Z", group: "ledzwie-l" },
+  { d: "M298 320 L356 380 L381 470 L346 545 L298 545 Z", group: "ledzwie-p" },
+];
+
 function readView(view) {
   const svg = readFileSync(new URL(`${view}.svg`, source), "utf8");
   const viewBox = svg.match(/viewBox="([^"]+)"/)[1];
@@ -17,6 +26,10 @@ function readView(view) {
     .map((match, index) => ({ d: match[1], group: assignment[view][index], index }))
     .filter((path) => path.index !== backgroundPaths[view])
     .map(({ d, group }) => ({ d, group }));
+  if (view === "back") {
+    // pierwsza sciezka to kontur sylwetki, ledzwie ida zaraz za nia
+    paths.splice(1, 0, ...lumbarPaths);
+  }
   return { viewBox, paths };
 }
 

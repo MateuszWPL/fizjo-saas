@@ -79,11 +79,6 @@ export default function HomePage() {
             Ćwiczenia
           </Link>
         </li>
-        <li>
-          <Link href="/body-map" className="text-stone-800 underline hover:text-stone-600">
-            Mapa ciała
-          </Link>
-        </li>
         {me.role === "OWNER" && (
           <li>
             <Link href="/admin" className="text-stone-800 underline hover:text-stone-600">

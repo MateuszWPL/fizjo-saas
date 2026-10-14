@@ -17,6 +17,20 @@ export class VisitsService {
     private readonly patients: PatientsService,
   ) {}
 
+  async recent(userId: string) {
+    const db = this.prisma.forUser(userId);
+    const clinicId = await this.profiles.clinicIdFor(userId);
+    return db.visit.findMany({
+      where: { patient: { clinicId, archivedAt: null } },
+      orderBy: [{ visitDate: 'desc' }, { createdAt: 'desc' }],
+      take: 8,
+      include: {
+        patient: { select: { id: true, firstName: true, lastName: true } },
+        therapist: { select: { fullName: true } },
+      },
+    });
+  }
+
   async listForPatient(userId: string, patientId: string) {
     const db = this.prisma.forUser(userId);
     const patient = await this.patients.get(userId, patientId);
@@ -38,6 +52,8 @@ export class VisitsService {
         interview: dto.interview,
         examination: dto.examination,
         diagnosis: dto.diagnosis,
+        icd10Code: dto.icd10Code,
+        treatment: dto.treatment,
         recommendations: dto.recommendations,
       },
     });
@@ -49,7 +65,11 @@ export class VisitsService {
     const visit = await db.visit.findFirst({
       where: { id, patient: { clinicId } },
       include: {
-        therapist: { select: { fullName: true } },
+        therapist: { select: { fullName: true, licenseNumber: true } },
+        amendments: {
+          orderBy: { createdAt: 'asc' },
+          include: { author: { select: { fullName: true } } },
+        },
         patient: { select: { id: true, firstName: true, lastName: true } },
       },
     });
@@ -77,6 +97,8 @@ export class VisitsService {
         interview: dto.interview,
         examination: dto.examination,
         diagnosis: dto.diagnosis,
+        icd10Code: dto.icd10Code,
+        treatment: dto.treatment,
         recommendations: dto.recommendations,
       },
     });
@@ -91,6 +113,20 @@ export class VisitsService {
     return db.visit.update({
       where: { id: visit.id },
       data: { closedAt: new Date() },
+    });
+  }
+
+  async addAmendment(userId: string, id: string, content: string) {
+    const db = this.prisma.forUser(userId);
+    const visit = await this.get(userId, id);
+    if (!visit.closedAt) {
+      throw new ConflictException(
+        'Otwartą wizytę popraw w edycji, adnotacje są dla zamkniętych',
+      );
+    }
+    return db.visitAmendment.create({
+      data: { visitId: visit.id, authorId: userId, content },
+      include: { author: { select: { fullName: true } } },
     });
   }
 }

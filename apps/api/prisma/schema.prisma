@@ -12,6 +12,11 @@ enum ProfileRole {
   THERAPIST
 }
 
+enum Sex {
+  FEMALE
+  MALE
+}
+
 model Clinic {
   id        String     @id @default(uuid()) @db.Uuid
   name      String
@@ -73,15 +78,18 @@ model ExercisePlanItem {
 
 model Profile {
   // id jest rowne auth.users.id z Supabase, konto tworzy Supabase Auth
-  id        String         @id @db.Uuid
-  clinicId  String         @map("clinic_id") @db.Uuid
-  fullName  String         @map("full_name")
-  role      ProfileRole    @default(THERAPIST)
-  active    Boolean        @default(true)
-  createdAt DateTime       @default(now()) @map("created_at")
-  clinic    Clinic         @relation(fields: [clinicId], references: [id])
-  visits    Visit[]
-  plans     ExercisePlan[]
+  id            String           @id @db.Uuid
+  clinicId      String           @map("clinic_id") @db.Uuid
+  fullName      String           @map("full_name")
+  role          ProfileRole      @default(THERAPIST)
+  // numer prawa wykonywania zawodu fizjoterapeuty (PWZFz)
+  licenseNumber String?          @map("license_number")
+  active        Boolean          @default(true)
+  createdAt     DateTime         @default(now()) @map("created_at")
+  clinic        Clinic           @relation(fields: [clinicId], references: [id])
+  visits        Visit[]
+  plans         ExercisePlan[]
+  amendments    VisitAmendment[]
 
   @@index([clinicId])
   @@map("profiles")
@@ -93,6 +101,9 @@ model Patient {
   firstName  String         @map("first_name")
   lastName   String         @map("last_name")
   birthDate  DateTime?      @map("birth_date") @db.Date
+  pesel      String?
+  sex        Sex?
+  address    String?
   phone      String?
   email      String?
   notes      String?
@@ -103,28 +114,49 @@ model Patient {
   visits     Visit[]
   plans      ExercisePlan[]
 
+  @@unique([clinicId, pesel])
   @@index([clinicId])
   @@map("patients")
 }
 
 model Visit {
-  id              String       @id @default(uuid()) @db.Uuid
-  patientId       String       @map("patient_id") @db.Uuid
-  therapistId     String       @map("therapist_id") @db.Uuid
-  visitDate       DateTime     @map("visit_date") @db.Date
+  id              String           @id @default(uuid()) @db.Uuid
+  patientId       String           @map("patient_id") @db.Uuid
+  therapistId     String           @map("therapist_id") @db.Uuid
+  visitDate       DateTime         @map("visit_date") @db.Date
   interview       String?
   examination     String?
   diagnosis       String?
+  // kod rozpoznania wg klasyfikacji ICD-10, np. M54.5
+  icd10Code       String?          @map("icd10_code")
+  // opis postepowania fizjoterapeutycznego, czyli co wykonano na wizycie
+  treatment       String?
   recommendations String?
-  closedAt        DateTime?    @map("closed_at")
-  createdAt       DateTime     @default(now()) @map("created_at")
-  updatedAt       DateTime     @updatedAt @map("updated_at")
-  patient         Patient      @relation(fields: [patientId], references: [id])
-  therapist       Profile      @relation(fields: [therapistId], references: [id])
+  closedAt        DateTime?        @map("closed_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  patient         Patient          @relation(fields: [patientId], references: [id])
+  therapist       Profile          @relation(fields: [therapistId], references: [id])
   bodyMarkers     BodyMarker[]
+  amendments      VisitAmendment[]
 
   @@index([patientId])
   @@map("visits")
+}
+
+// zamknietej wizyty nie edytujemy, poprawki dopisuje sie jako adnotacje
+// z autorem i data, tak jak wymaga tego prawo dla dokumentacji medycznej
+model VisitAmendment {
+  id        String   @id @default(uuid()) @db.Uuid
+  visitId   String   @map("visit_id") @db.Uuid
+  authorId  String   @map("author_id") @db.Uuid
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  visit     Visit    @relation(fields: [visitId], references: [id])
+  author    Profile  @relation(fields: [authorId], references: [id])
+
+  @@index([visitId])
+  @@map("visit_amendments")
 }
 
 model BodyMarker {

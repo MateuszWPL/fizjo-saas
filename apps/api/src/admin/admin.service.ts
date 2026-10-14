@@ -61,6 +61,7 @@ export class AdminService {
         return {
           id: profile.id,
           fullName: profile.fullName,
+          licenseNumber: profile.licenseNumber,
           role: profile.role,
           active: profile.active,
           email: data.user.email ?? null,
@@ -92,6 +93,7 @@ export class AdminService {
           id: data.user.id,
           clinicId,
           fullName: dto.fullName,
+          licenseNumber: dto.licenseNumber,
           role: 'THERAPIST',
         },
       });

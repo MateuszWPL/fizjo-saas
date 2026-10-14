@@ -92,7 +92,7 @@ export class ExercisePlansService {
     const plan = await db.exercisePlan.findFirst({
       where: { id, patient: { clinicId } },
       include: {
-        therapist: { select: { fullName: true } },
+        therapist: { select: { fullName: true, licenseNumber: true } },
         patient: { include: { clinic: { select: { name: true } } } },
         items: { orderBy: { position: 'asc' }, include: { exercise: true } },
       },
@@ -121,7 +121,9 @@ export class ExercisePlansService {
     return renderPlanPdf({
       clinicName: plan.patient.clinic.name,
       patientName: `${plan.patient.firstName} ${plan.patient.lastName}`,
-      therapistName: plan.therapist.fullName,
+      therapistName: plan.therapist.licenseNumber
+        ? `${plan.therapist.fullName}, PWZFz ${plan.therapist.licenseNumber}`
+        : plan.therapist.fullName,
       issuedAt: plan.createdAt,
       note: plan.note,
       items,

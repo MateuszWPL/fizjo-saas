@@ -1,4 +1,4 @@
-import { IsDateString, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsOptional, IsString, Matches } from 'class-validator';
 
 export class UpdateVisitDto {
   @IsOptional()
@@ -16,6 +16,14 @@ export class UpdateVisitDto {
   @IsOptional()
   @IsString()
   diagnosis?: string | null;
+
+  @IsOptional()
+  @Matches(/^[A-Z]\d{2}(\.\d{1,2})?$/)
+  icd10Code?: string | null;
+
+  @IsOptional()
+  @IsString()
+  treatment?: string | null;
 
   @IsOptional()
   @IsString()

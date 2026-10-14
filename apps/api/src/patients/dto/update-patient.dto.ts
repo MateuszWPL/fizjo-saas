@@ -1,6 +1,7 @@
 import {
   IsDateString,
   IsEmail,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -20,6 +21,19 @@ export class UpdatePatientDto {
   @IsOptional()
   @IsDateString()
   birthDate?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  pesel?: string | null;
+
+  @IsOptional()
+  @IsIn(['FEMALE', 'MALE'])
+  sex?: 'FEMALE' | 'MALE' | null;
+
+  @IsOptional()
+  @IsString()
+  address?: string | null;
 
   @IsOptional()
   @IsString()

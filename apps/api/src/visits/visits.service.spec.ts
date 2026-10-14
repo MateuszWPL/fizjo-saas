@@ -12,6 +12,7 @@ function setup(closedAt: Date | null) {
       findFirst: vi.fn().mockResolvedValue(visit),
       update: vi.fn().mockResolvedValue(visit),
     },
+    visitAmendment: { create: vi.fn().mockResolvedValue({}) },
   };
   const prisma = { forUser: () => db } as unknown as PrismaService;
   const profiles = {
@@ -51,5 +52,30 @@ describe('VisitsService', () => {
       ConflictException,
     );
     expect(db.visit.update).not.toHaveBeenCalled();
+  });
+
+  it('dopisuje adnotację do zamkniętej wizyty z autorem', async () => {
+    const { service, db } = setup(new Date('2026-10-01'));
+
+    await service.addAmendment('user-1', 'visit-1', 'Korekta rozpoznania');
+
+    expect(db.visitAmendment.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          visitId: 'visit-1',
+          authorId: 'user-1',
+          content: 'Korekta rozpoznania',
+        },
+      }),
+    );
+  });
+
+  it('nie dopisuje adnotacji do otwartej wizyty', async () => {
+    const { service, db } = setup(null);
+
+    await expect(
+      service.addAmendment('user-1', 'visit-1', 'Korekta'),
+    ).rejects.toThrow(ConflictException);
+    expect(db.visitAmendment.create).not.toHaveBeenCalled();
   });
 });

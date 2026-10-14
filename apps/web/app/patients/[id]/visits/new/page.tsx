@@ -5,12 +5,20 @@ import Link from "next/link";
 import { VisitForm, toVisitPayload, type VisitFormValues } from "@/components/visit-form";
 import { apiFetch } from "@/lib/api";
 
+// toISOString liczy w UTC, wiec tuz po polnocy dawalby wczorajsza date
+function todayLocal() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
 export default function NewVisitPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
 
   const initial: VisitFormValues = {
-    visitDate: new Date().toISOString().slice(0, 10),
+    visitDate: todayLocal(),
     interview: "",
     examination: "",
     diagnosis: "",

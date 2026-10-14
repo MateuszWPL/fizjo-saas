@@ -120,7 +120,11 @@ export default function NewPlanPage() {
       </Link>
       <h1 className="mt-2 text-xl font-semibold text-stone-800">Nowy zestaw zaleceń</h1>
       {exercises === null ? (
-        <p className="mt-4 text-sm text-stone-500">{error ?? "Ładowanie..."}</p>
+        error ? (
+          <p className="mt-4 text-sm text-red-700">{error}</p>
+        ) : (
+          <p className="mt-4 text-sm text-stone-500">Ładowanie...</p>
+        )
       ) : exercises.length === 0 ? (
         <p className="mt-4 text-sm text-stone-500">
           Baza ćwiczeń jest pusta.{" "}

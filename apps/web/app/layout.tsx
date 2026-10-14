@@ -3,10 +3,7 @@ import { Source_Sans_3 } from "next/font/google";
 import { AppHeader } from "@/components/app-header";
 import "./globals.css";
 
-const sourceSans = Source_Sans_3({
-  variable: "--font-source-sans",
-  subsets: ["latin", "latin-ext"],
-});
+const sourceSans = Source_Sans_3({ subsets: ["latin", "latin-ext"] });
 
 export const metadata: Metadata = {
   title: "Fizjo",
@@ -19,8 +16,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pl">
-      <body className={`${sourceSans.variable} font-sans antialiased`}>
+    <html lang="pl" className={sourceSans.className}>
+      <body className="antialiased">
         <AppHeader />
         {children}
       </body>

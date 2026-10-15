@@ -2,16 +2,25 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Dumbbell, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { EmptyMessage, ErrorMessage, LoadingRows } from "@/components/load-state";
 import { PageHeader } from "@/components/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { apiFetch } from "@/lib/api";
 import type { Exercise } from "@/lib/types";
 
 export default function ExercisesPage() {
+  const router = useRouter();
   const [exercises, setExercises] = useState<Exercise[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,50 +54,68 @@ export default function ExercisesPage() {
           </Button>
         }
       />
-      {error ? (
-        <ErrorMessage message={error} />
-      ) : exercises === null ? (
-        <LoadingRows />
-      ) : exercises.length === 0 ? (
-        <Card>
-          <CardContent>
+      <Card>
+        <CardContent>
+          {error ? (
+            <ErrorMessage message={error} />
+          ) : exercises === null ? (
+            <LoadingRows />
+          ) : exercises.length === 0 ? (
             <EmptyMessage>Nie ma jeszcze żadnych ćwiczeń.</EmptyMessage>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {exercises.map((exercise) => (
-            <Link key={exercise.id} href={`/exercises/${exercise.id}/edit`} className="group">
-              <Card className="h-full pt-0 transition-shadow group-hover:shadow-md">
-                {exercise.imageUrl ? (
-                  // obrazki z publicznego bucketa, poza domenami next/image
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={exercise.imageUrl} alt="" className="h-40 w-full object-cover" />
-                ) : (
-                  <div className="flex h-40 items-center justify-center bg-muted text-muted-foreground">
-                    <Dumbbell className="size-8" />
-                  </div>
-                )}
-                <CardContent className="space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <h2 className="font-medium">{exercise.name}</h2>
-                    {exercise.defaultSets && exercise.defaultReps && (
-                      <Badge variant="secondary">
-                        {exercise.defaultSets} x {exercise.defaultReps}
-                      </Badge>
-                    )}
-                  </div>
-                  {exercise.description && (
-                    <p className="line-clamp-2 text-sm text-muted-foreground">
-                      {exercise.description}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      )}
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Ćwiczenie</TableHead>
+                  <TableHead className="w-32 text-right">Serie x powt.</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {exercises.map((exercise) => (
+                  <TableRow
+                    key={exercise.id}
+                    className="cursor-pointer"
+                    onClick={() => router.push(`/exercises/${exercise.id}/edit`)}
+                  >
+                    <TableCell className="whitespace-normal">
+                      <div className="flex items-start gap-3">
+                        {exercise.imageUrl && (
+                          // obrazki z publicznego bucketa, poza domenami next/image
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={exercise.imageUrl}
+                            alt=""
+                            loading="lazy"
+                            className="size-12 shrink-0 rounded-md object-cover"
+                          />
+                        )}
+                        <div>
+                          <Link
+                            href={`/exercises/${exercise.id}/edit`}
+                            className="font-medium hover:underline"
+                          >
+                            {exercise.name}
+                          </Link>
+                          {exercise.description && (
+                            <p className="line-clamp-2 max-w-prose text-muted-foreground">
+                              {exercise.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right align-top tabular-nums">
+                      {exercise.defaultSets && exercise.defaultReps
+                        ? `${exercise.defaultSets} x ${exercise.defaultReps}`
+                        : "-"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </main>
   );
 }

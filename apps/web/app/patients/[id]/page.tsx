@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Archive, ClipboardPlus, LineChart, ListPlus, Pencil } from "lucide-react";
+import { Archive, ClipboardPlus, FileDown, LineChart, ListPlus, Pencil } from "lucide-react";
 import { ConfirmButton } from "@/components/confirm-button";
 import { EmptyMessage, ErrorMessage, LoadingRows } from "@/components/load-state";
 import { PageHeader } from "@/components/page-header";
@@ -32,6 +32,7 @@ export default function PatientPage() {
   const [plans, setPlans] = useState<ExercisePlanSummary[] | null>(null);
   const [plansError, setPlansError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -60,6 +61,26 @@ export default function PatientPage() {
     }
     load();
   }, [id]);
+
+  // link <a href> nie wysle tokenu, wiec PDF pobieramy fetchem jak w zestawach zalecen
+  async function downloadDocumentation() {
+    setExportError(null);
+    try {
+      const response = await apiFetch(`/patients/${id}/documentation`);
+      if (!response.ok) {
+        setExportError("Nie udało się wygenerować kopii dokumentacji.");
+        return;
+      }
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `dokumentacja-${patient?.lastName ?? "pacjenta"}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setExportError("Brak połączenia z API.");
+    }
+  }
 
   async function archive() {
     try {
@@ -123,6 +144,10 @@ export default function PatientPage() {
                 Historia bólu
               </Link>
             </Button>
+            <Button variant="outline" onClick={downloadDocumentation}>
+              <FileDown />
+              Kopia dokumentacji
+            </Button>
             <Button variant="outline" asChild>
               <Link href={`/patients/${patient.id}/edit`}>
                 <Pencil />
@@ -145,6 +170,11 @@ export default function PatientPage() {
           </>
         }
       />
+      {exportError && (
+        <div className="mb-6">
+          <ErrorMessage message={exportError} />
+        </div>
+      )}
       <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
         <Card className="self-start">
           <CardHeader>
@@ -167,7 +197,8 @@ export default function PatientPage() {
             </dl>
           </CardContent>
         </Card>
-        <div className="space-y-6">
+        {/* min-w-0, bo szeroka tabela rozpychalaby kolumne siatki poza ekran */}
+        <div className="min-w-0 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Wizyty</CardTitle>

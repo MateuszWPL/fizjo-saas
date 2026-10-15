@@ -26,7 +26,7 @@ export function BodyMap({ view, groupFills, selectedGroup, onGroupClick }: BodyM
     if (!group) return fills.contour;
     const custom = groupFills[group];
     if (custom) return custom;
-    return group === hoveredGroup ? fills.hovered : fills.base;
+    return group === hoveredGroup || group === selectedGroup ? fills.hovered : fills.base;
   }
 
   return (
@@ -35,7 +35,7 @@ export function BodyMap({ view, groupFills, selectedGroup, onGroupClick }: BodyM
         viewBox={viewBox}
         role="img"
         aria-label={view === "front" ? "Mapa ciała, przód" : "Mapa ciała, tył"}
-        className="h-[440px] w-auto"
+        className="h-[280px] w-auto sm:h-[440px]"
         onMouseLeave={() => setHoveredGroup(null)}
       >
         {paths.map(({ d, group }, i) => (

@@ -12,13 +12,7 @@ import { visitFields } from "@/components/visit-form";
 import { VisitStatusBadge } from "@/components/visit-status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { apiFetch, errorMessage } from "@/lib/api";
@@ -175,6 +169,7 @@ export default function VisitPage() {
                 title="Zamknąć wizytę?"
                 description="Zamknięta wizyta staje się wpisem niemodyfikowalnym. Późniejsze poprawki można dodać tylko jako adnotacje z autorem i datą."
                 confirmLabel="Zamknij wizytę"
+                variant="default"
                 onConfirm={close}
               />
             </>
@@ -206,7 +201,7 @@ export default function VisitPage() {
           )}
         </CardContent>
       </Card>
-      <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
+      <div className={visit.closedAt ? "grid gap-6 lg:grid-cols-[1fr_22rem]" : undefined}>
         <Card>
           <CardHeader>
             <CardTitle>Opis wizyty</CardTitle>
@@ -220,34 +215,38 @@ export default function VisitPage() {
                     <Badge variant="outline">ICD-10 {visit.icd10Code}</Badge>
                   )}
                 </h3>
-                <p className="mt-1 text-sm whitespace-pre-wrap">{visit[field] || "-"}</p>
+                {visit[field] ? (
+                  <p className="mt-1 max-w-prose text-sm whitespace-pre-wrap">{visit[field]}</p>
+                ) : (
+                  <p className="mt-1 text-sm text-muted-foreground">Nie uzupełniono.</p>
+                )}
               </section>
             ))}
           </CardContent>
         </Card>
-        <Card className="self-start">
-          <CardHeader>
-            <CardTitle>Adnotacje</CardTitle>
-            <CardDescription>
-              Poprawki do zamkniętej wizyty. Treść wpisu się nie zmienia, adnotacja go uzupełnia.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {visit.amendments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Brak adnotacji.</p>
-            ) : (
-              <ul className="space-y-3">
-                {visit.amendments.map((item) => (
-                  <li key={item.id} className="rounded-md border p-3 text-sm">
-                    <p className="whitespace-pre-wrap">{item.content}</p>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {item.author.fullName}, {new Date(item.createdAt).toLocaleString("pl-PL")}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {visit.closedAt ? (
+        {visit.closedAt && (
+          <Card className="self-start">
+            <CardHeader>
+              <CardTitle>Adnotacje</CardTitle>
+              <CardDescription>
+                Poprawki do zamkniętej wizyty. Treść wpisu się nie zmienia, adnotacja go uzupełnia.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {visit.amendments.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Brak adnotacji.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {visit.amendments.map((item) => (
+                    <li key={item.id} className="rounded-md border p-3 text-sm">
+                      <p className="whitespace-pre-wrap">{item.content}</p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {item.author.fullName}, {new Date(item.createdAt).toLocaleString("pl-PL")}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <form onSubmit={addAmendment} className="space-y-2">
                 <Label htmlFor="amendment">Nowa adnotacja</Label>
                 <Textarea
@@ -262,13 +261,9 @@ export default function VisitPage() {
                   Dodaj adnotację
                 </Button>
               </form>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Otwartą wizytę poprawia się w edycji. Adnotacje dodaje się po zamknięciu.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </main>
   );

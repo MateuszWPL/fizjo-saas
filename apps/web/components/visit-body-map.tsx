@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Trash2 } from "lucide-react";
 import { BodyMap } from "./body-map";
 import { ErrorMessage } from "./load-state";
+import { NativeSelect } from "./native-select";
 import { PainLegend } from "./pain-legend";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -38,6 +39,9 @@ export function VisitBodyMap({ markers, readOnly, onSave, onDelete }: VisitBodyM
 
   const groupFills = fillsFromMarkers(markers);
   const selectedMarker = markers.find((marker) => marker.muscleGroup === selectedGroup);
+  const unmarkedGroups = Object.entries(muscleGroupLabels)
+    .filter(([group]) => !markers.some((marker) => marker.muscleGroup === group))
+    .sort(([, a], [, b]) => a.localeCompare(b, "pl"));
 
   function selectGroup(group: string) {
     const marker = markers.find((m) => m.muscleGroup === group);
@@ -82,24 +86,21 @@ export function VisitBodyMap({ markers, readOnly, onSave, onDelete }: VisitBodyM
 
   return (
     <div className="grid gap-6 lg:grid-cols-[auto_1fr]">
-      <div className="space-y-3">
-        <div className="flex flex-wrap justify-center gap-6">
-          <BodyMap
-            view="front"
-            groupFills={groupFills}
-            selectedGroup={selectedGroup}
-            onGroupClick={readOnly ? undefined : selectGroup}
-          />
-          <BodyMap
-            view="back"
-            groupFills={groupFills}
-            selectedGroup={selectedGroup}
-            onGroupClick={readOnly ? undefined : selectGroup}
-          />
-        </div>
-        <PainLegend />
+      <div className="flex justify-center gap-4 sm:gap-6">
+        <BodyMap
+          view="front"
+          groupFills={groupFills}
+          selectedGroup={selectedGroup}
+          onGroupClick={readOnly ? undefined : selectGroup}
+        />
+        <BodyMap
+          view="back"
+          groupFills={groupFills}
+          selectedGroup={selectedGroup}
+          onGroupClick={readOnly ? undefined : selectGroup}
+        />
       </div>
-      <div className="min-w-64">
+      <div className="min-w-64 lg:border-l lg:pl-6">
         {selectedGroup ? (
           <div className="space-y-4">
             <h3 className="font-medium">{muscleGroupLabels[selectedGroup]}</h3>
@@ -109,6 +110,7 @@ export function VisitBodyMap({ markers, readOnly, onSave, onDelete }: VisitBodyM
                 <input
                   id="painLevel"
                   type="range"
+                  autoFocus
                   min={0}
                   max={10}
                   value={values.painLevel}
@@ -175,27 +177,56 @@ export function VisitBodyMap({ markers, readOnly, onSave, onDelete }: VisitBodyM
             </div>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-medium">
+                Oznaczenia bólu
+                {markers.length > 0 && (
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    {markers.length}
+                  </span>
+                )}
+              </h3>
+              {!readOnly && (
+                <p className="text-sm text-muted-foreground">
+                  Kliknij obszar na sylwetce albo pozycję z listy, żeby ją zmienić.
+                </p>
+              )}
+            </div>
+            {/* sylwetki nie da sie obsluzyc klawiatura, wiec obszar mozna tez wybrac z listy */}
             {!readOnly && (
-              <p className="text-sm text-muted-foreground">
-                Kliknij mięsień na sylwetce, żeby oznaczyć ból.
-              </p>
+              <NativeSelect
+                aria-label="Dodaj obszar z listy"
+                value=""
+                onChange={(e) => selectGroup(e.target.value)}
+                className="w-full"
+              >
+                <option value="">Dodaj obszar z listy...</option>
+                {unmarkedGroups.map(([group, label]) => (
+                  <option key={group} value={group}>
+                    {label}
+                  </option>
+                ))}
+              </NativeSelect>
             )}
-            <Separator />
             {markers.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Brak oznaczeń bólu.</p>
+              <p className="rounded-md border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
+                {readOnly
+                  ? "Na tej wizycie nie oznaczono bólu."
+                  : "Brak oznaczeń. Kliknij bolesny obszar na sylwetce."}
+              </p>
             ) : (
-              <ul className="space-y-1">
+              <ul className="divide-y rounded-md border">
                 {markers.map((marker) => (
                   <li key={marker.id}>
                     <button
                       type="button"
                       disabled={readOnly}
                       onClick={() => selectGroup(marker.muscleGroup)}
-                      className="flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left text-sm enabled:hover:bg-muted"
+                      className="flex w-full items-start gap-3 px-3 py-2.5 text-left text-sm enabled:hover:bg-muted"
                     >
                       <span
-                        className="flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-semibold"
+                        className="flex size-8 shrink-0 items-center justify-center rounded-md font-semibold tabular-nums"
                         style={{
                           background: painColor(marker.painLevel),
                           color: painTextColor(marker.painLevel),
@@ -203,15 +234,23 @@ export function VisitBodyMap({ markers, readOnly, onSave, onDelete }: VisitBodyM
                       >
                         {marker.painLevel}
                       </span>
-                      <span className="flex-1">{muscleGroupLabels[marker.muscleGroup]}</span>
-                      {marker.painType && (
-                        <span className="text-muted-foreground">{marker.painType}</span>
-                      )}
+                      <span className="flex-1">
+                        <span className="block font-medium">
+                          {muscleGroupLabels[marker.muscleGroup]}
+                        </span>
+                        {(marker.painType || marker.note) && (
+                          <span className="block text-muted-foreground">
+                            {[marker.painType, marker.note].filter(Boolean).join(", ")}
+                          </span>
+                        )}
+                      </span>
                     </button>
                   </li>
                 ))}
               </ul>
             )}
+            <Separator />
+            <PainLegend />
           </div>
         )}
       </div>

@@ -8,6 +8,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { AuditService } from '../audit/audit.service.js';
 import { AuthGuard, type AuthUser } from '../auth/auth.guard.js';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import { AdminService } from './admin.service.js';
@@ -17,7 +18,10 @@ import { UpdateTherapistDto } from './dto/update-therapist.dto.js';
 @Controller('admin')
 @UseGuards(AuthGuard)
 export class AdminController {
-  constructor(private readonly admin: AdminService) {}
+  constructor(
+    private readonly admin: AdminService,
+    private readonly audit: AuditService,
+  ) {}
 
   @Get('stats')
   stats(@CurrentUser() user: AuthUser) {
@@ -30,19 +34,33 @@ export class AdminController {
   }
 
   @Post('therapists')
-  createTherapist(
+  async createTherapist(
     @CurrentUser() user: AuthUser,
     @Body() dto: CreateTherapistDto,
   ) {
-    return this.admin.createTherapist(user.id, dto);
+    const profile = await this.admin.createTherapist(user.id, dto);
+    await this.audit.log(user.id, 'THERAPIST_CREATED', {
+      details: profile.fullName,
+    });
+    return profile;
   }
 
   @Patch('therapists/:id')
-  updateTherapist(
+  async updateTherapist(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateTherapistDto,
   ) {
-    return this.admin.setTherapistActive(user.id, id, dto.active);
+    const profile = await this.admin.setTherapistActive(
+      user.id,
+      id,
+      dto.active,
+    );
+    await this.audit.log(
+      user.id,
+      profile.active ? 'THERAPIST_RESTORED' : 'THERAPIST_DEACTIVATED',
+      { details: profile.fullName },
+    );
+    return profile;
   }
 }

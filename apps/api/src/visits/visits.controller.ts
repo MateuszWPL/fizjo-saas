@@ -8,6 +8,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { AuditService } from '../audit/audit.service.js';
 import { AuthGuard, type AuthUser } from '../auth/auth.guard.js';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import { VisitsService } from './visits.service.js';
@@ -18,7 +19,10 @@ import { CreateAmendmentDto } from './dto/create-amendment.dto.js';
 @Controller()
 @UseGuards(AuthGuard)
 export class VisitsController {
-  constructor(private readonly visits: VisitsService) {}
+  constructor(
+    private readonly visits: VisitsService,
+    private readonly audit: AuditService,
+  ) {}
 
   @Get('patients/:patientId/visits')
   listForPatient(
@@ -29,12 +33,14 @@ export class VisitsController {
   }
 
   @Post('patients/:patientId/visits')
-  create(
+  async create(
     @CurrentUser() user: AuthUser,
     @Param('patientId', ParseUUIDPipe) patientId: string,
     @Body() dto: CreateVisitDto,
   ) {
-    return this.visits.create(user.id, patientId, dto);
+    const visit = await this.visits.create(user.id, patientId, dto);
+    await this.audit.log(user.id, 'VISIT_CREATED', { patientId });
+    return visit;
   }
 
   @Get('visits/recent')
@@ -43,30 +49,52 @@ export class VisitsController {
   }
 
   @Get('visits/:id')
-  get(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
-    return this.visits.get(user.id, id);
+  async get(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    const visit = await this.visits.get(user.id, id);
+    await this.audit.log(user.id, 'VISIT_VIEWED', {
+      patientId: visit.patientId,
+    });
+    return visit;
   }
 
   @Patch('visits/:id')
-  update(
+  async update(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateVisitDto,
   ) {
-    return this.visits.update(user.id, id, dto);
+    const visit = await this.visits.update(user.id, id, dto);
+    await this.audit.log(user.id, 'VISIT_UPDATED', {
+      patientId: visit.patientId,
+    });
+    return visit;
   }
 
   @Post('visits/:id/close')
-  close(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
-    return this.visits.close(user.id, id);
+  async close(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    const visit = await this.visits.close(user.id, id);
+    await this.audit.log(user.id, 'VISIT_CLOSED', {
+      patientId: visit.patientId,
+    });
+    return visit;
   }
 
   @Post('visits/:id/amendments')
-  addAmendment(
+  async addAmendment(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateAmendmentDto,
   ) {
-    return this.visits.addAmendment(user.id, id, dto.content);
+    const amendment = await this.visits.addAmendment(user.id, id, dto.content);
+    await this.audit.log(user.id, 'VISIT_AMENDED', {
+      patientId: amendment.visit.patientId,
+    });
+    return amendment;
   }
 }

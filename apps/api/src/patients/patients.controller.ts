@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { AuditService } from '../audit/audit.service.js';
 import { AuthGuard, type AuthUser } from '../auth/auth.guard.js';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import { PatientsService } from './patients.service.js';
@@ -18,7 +19,10 @@ import { UpdatePatientDto } from './dto/update-patient.dto.js';
 @Controller('patients')
 @UseGuards(AuthGuard)
 export class PatientsController {
-  constructor(private readonly patients: PatientsService) {}
+  constructor(
+    private readonly patients: PatientsService,
+    private readonly audit: AuditService,
+  ) {}
 
   @Get()
   list(@CurrentUser() user: AuthUser, @Query('search') search?: string) {
@@ -26,29 +30,42 @@ export class PatientsController {
   }
 
   @Get(':id')
-  get(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
-    return this.patients.get(user.id, id);
+  async get(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    const patient = await this.patients.get(user.id, id);
+    await this.audit.log(user.id, 'PATIENT_VIEWED', { patientId: patient.id });
+    return patient;
   }
 
   @Post()
-  create(@CurrentUser() user: AuthUser, @Body() dto: CreatePatientDto) {
-    return this.patients.create(user.id, dto);
+  async create(@CurrentUser() user: AuthUser, @Body() dto: CreatePatientDto) {
+    const patient = await this.patients.create(user.id, dto);
+    await this.audit.log(user.id, 'PATIENT_CREATED', { patientId: patient.id });
+    return patient;
   }
 
   @Patch(':id')
-  update(
+  async update(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdatePatientDto,
   ) {
-    return this.patients.update(user.id, id, dto);
+    const patient = await this.patients.update(user.id, id, dto);
+    await this.audit.log(user.id, 'PATIENT_UPDATED', { patientId: patient.id });
+    return patient;
   }
 
   @Post(':id/archive')
-  archive(
+  async archive(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.patients.archive(user.id, id);
+    const patient = await this.patients.archive(user.id, id);
+    await this.audit.log(user.id, 'PATIENT_ARCHIVED', {
+      patientId: patient.id,
+    });
+    return patient;
   }
 }

@@ -126,7 +126,10 @@ export class VisitsService {
     }
     return db.visitAmendment.create({
       data: { visitId: visit.id, authorId: userId, content },
-      include: { author: { select: { fullName: true } } },
+      include: {
+        author: { select: { fullName: true } },
+        visit: { select: { patientId: true } },
+      },
     });
   }
 }

@@ -7,7 +7,7 @@ import { PatientsService } from '../patients/patients.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { VisitsService } from '../visits/visits.service.js';
 import type { UpsertBodyMarkerDto } from './dto/upsert-body-marker.dto.js';
-import { MUSCLE_GROUPS } from './muscle-groups.js';
+import { MUSCLE_GROUP_LABELS } from './muscle-groups.js';
 
 @Injectable()
 export class BodyMarkersService {
@@ -49,7 +49,7 @@ export class BodyMarkersService {
     muscleGroup: string,
     dto: UpsertBodyMarkerDto,
   ) {
-    if (!MUSCLE_GROUPS.includes(muscleGroup)) {
+    if (!Object.hasOwn(MUSCLE_GROUP_LABELS, muscleGroup)) {
       throw new BadRequestException('Nieznana grupa mięśniowa');
     }
     const db = this.prisma.forUser(userId);

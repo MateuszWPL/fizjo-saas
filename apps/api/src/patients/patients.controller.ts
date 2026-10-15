@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service.js';
@@ -37,6 +38,19 @@ export class PatientsController {
     const patient = await this.patients.get(user.id, id);
     await this.audit.log(user.id, 'PATIENT_VIEWED', { patientId: patient.id });
     return patient;
+  }
+
+  @Get(':id/documentation')
+  async documentation(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    const pdf = await this.patients.renderDocumentation(user.id, id);
+    await this.audit.log(user.id, 'PATIENT_EXPORTED', { patientId: id });
+    return new StreamableFile(pdf, {
+      type: 'application/pdf',
+      disposition: 'attachment; filename="dokumentacja.pdf"',
+    });
   }
 
   @Post()

@@ -9,7 +9,11 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { ProfilesService } from '../profiles/profiles.service.js';
 import type { CreatePatientDto } from './dto/create-patient.dto.js';
 import type { UpdatePatientDto } from './dto/update-patient.dto.js';
+import { MUSCLE_GROUP_LABELS } from '../body-markers/muscle-groups.js';
+import { renderDocumentationPdf } from './documentation-pdf.js';
 import { isValidPesel } from './pesel.js';
+
+const sexLabels = { FEMALE: 'kobieta', MALE: 'mężczyzna' } as const;
 
 function checkPesel(pesel: string | null | undefined) {
   if (pesel && !isValidPesel(pesel)) {
@@ -112,6 +116,79 @@ export class PatientsService {
         },
       }),
     );
+  }
+
+  // kopia calej dokumentacji dla pacjenta, ktory ma do niej prawo wgladu
+  async renderDocumentation(userId: string, id: string) {
+    const db = this.prisma.forUser(userId);
+    const clinicId = await this.profiles.clinicIdFor(userId);
+    const [patient, author] = await Promise.all([
+      db.patient.findFirst({
+        where: { id, clinicId },
+        include: {
+          clinic: { select: { name: true } },
+          visits: {
+            orderBy: [{ visitDate: 'asc' }, { createdAt: 'asc' }],
+            include: {
+              therapist: { select: { fullName: true, licenseNumber: true } },
+              bodyMarkers: { orderBy: { painLevel: 'desc' } },
+              amendments: {
+                orderBy: { createdAt: 'asc' },
+                include: { author: { select: { fullName: true } } },
+              },
+            },
+          },
+        },
+      }),
+      db.profile.findUnique({ where: { id: userId } }),
+    ]);
+    if (!patient) {
+      throw new NotFoundException('Nie znaleziono pacjenta');
+    }
+    return renderDocumentationPdf({
+      clinicName: patient.clinic.name,
+      generatedAt: new Date(),
+      generatedBy: author?.fullName ?? '-',
+      patient: {
+        fullName: `${patient.firstName} ${patient.lastName}`,
+        pesel: patient.pesel,
+        birthDate: patient.birthDate,
+        sex: patient.sex ? sexLabels[patient.sex] : null,
+        address: patient.address,
+        phone: patient.phone,
+        email: patient.email,
+      },
+      visits: patient.visits.map((visit) => ({
+        visitDate: visit.visitDate,
+        closedAt: visit.closedAt,
+        therapist: visit.therapist.licenseNumber
+          ? `${visit.therapist.fullName}, PWZFz ${visit.therapist.licenseNumber}`
+          : visit.therapist.fullName,
+        fields: [
+          { label: 'Wywiad', value: visit.interview },
+          { label: 'Badanie i stan funkcjonalny', value: visit.examination },
+          {
+            label: 'Rozpoznanie',
+            value: visit.icd10Code
+              ? `${visit.icd10Code} ${visit.diagnosis ?? ''}`.trim()
+              : visit.diagnosis,
+          },
+          { label: 'Postępowanie fizjoterapeutyczne', value: visit.treatment },
+          { label: 'Zalecenia', value: visit.recommendations },
+        ],
+        markers: visit.bodyMarkers.map((marker) => ({
+          muscle: MUSCLE_GROUP_LABELS[marker.muscleGroup] ?? marker.muscleGroup,
+          painLevel: marker.painLevel,
+          painType: marker.painType,
+          note: marker.note,
+        })),
+        amendments: visit.amendments.map((amendment) => ({
+          content: amendment.content,
+          author: amendment.author.fullName,
+          createdAt: amendment.createdAt,
+        })),
+      })),
+    });
   }
 
   async archive(userId: string, id: string) {

@@ -1,13 +1,5 @@
-import { fileURLToPath } from 'node:url';
 import PDFDocument from 'pdfkit';
-
-// wbudowane czcionki pdfkit nie maja polskich znakow, stad wlasny plik TTF
-const regularFont = fileURLToPath(
-  new URL('../../assets/fonts/DejaVuSans.ttf', import.meta.url),
-);
-const boldFont = fileURLToPath(
-  new URL('../../assets/fonts/DejaVuSans-Bold.ttf', import.meta.url),
-);
+import { registerFonts } from '../pdf/fonts.js';
 
 export interface PlanPdfData {
   clinicName: string;
@@ -33,8 +25,7 @@ export function renderPlanPdf(plan: PlanPdfData): Promise<Buffer> {
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    doc.registerFont('regular', regularFont);
-    doc.registerFont('bold', boldFont);
+    registerFonts(doc);
 
     doc.font('bold').fontSize(16).text(plan.clinicName);
     doc.font('regular').fontSize(12).text('Zalecenia ćwiczeń');

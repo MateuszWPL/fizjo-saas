@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { UserPlus } from "lucide-react";
+import { AuditLog } from "@/components/audit-log";
 import { ConfirmButton } from "@/components/confirm-button";
 import { ErrorMessage, LoadingRows } from "@/components/load-state";
 import { PageHeader } from "@/components/page-header";
@@ -120,7 +121,7 @@ export default function AdminPage() {
 
   return (
     <main className="mx-auto max-w-6xl space-y-6 p-6">
-      <PageHeader title="Panel gabinetu" description="Konta terapeutów i podstawowe liczniki." />
+      <PageHeader title="Panel gabinetu" description="Konta terapeutów, podstawowe liczniki i dziennik zdarzeń." />
       {error && <ErrorMessage message={error} />}
       {stats && (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -265,6 +266,7 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       )}
+      {!error && therapists && <AuditLog />}
     </main>
   );
 }

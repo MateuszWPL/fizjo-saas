@@ -109,3 +109,29 @@ export interface Patient {
   notes: string | null;
   archivedAt: string | null;
 }
+
+export type AuditAction =
+  | "PATIENT_VIEWED"
+  | "PATIENT_CREATED"
+  | "PATIENT_UPDATED"
+  | "PATIENT_ARCHIVED"
+  | "VISIT_VIEWED"
+  | "VISIT_CREATED"
+  | "VISIT_UPDATED"
+  | "VISIT_CLOSED"
+  | "VISIT_AMENDED"
+  | "PLAN_CREATED"
+  | "PLAN_PDF_DOWNLOADED"
+  | "PLAN_EMAILED"
+  | "THERAPIST_CREATED"
+  | "THERAPIST_DEACTIVATED"
+  | "THERAPIST_RESTORED";
+
+export interface AuditEvent {
+  id: string;
+  action: AuditAction;
+  details: string | null;
+  createdAt: string;
+  actor: { fullName: string };
+  patient: { id: string; firstName: string; lastName: string } | null;
+}

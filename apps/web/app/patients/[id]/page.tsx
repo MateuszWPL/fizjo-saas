@@ -3,7 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { Archive, ClipboardPlus, FileDown, LineChart, ListPlus, Pencil } from "lucide-react";
+import {
+  Archive,
+  ArrowDown,
+  ArrowUp,
+  ClipboardList,
+  ClipboardPlus,
+  FileDown,
+  LineChart,
+  ListPlus,
+  Pencil,
+} from "lucide-react";
 import { ConfirmButton } from "@/components/confirm-button";
 import { EmptyMessage, ErrorMessage, LoadingRows } from "@/components/load-state";
 import { PageHeader } from "@/components/page-header";
@@ -21,7 +31,8 @@ import {
 } from "@/components/ui/table";
 import { apiFetch } from "@/lib/api";
 import { ageFrom, formatDate, sexLabels } from "@/lib/format";
-import type { ExercisePlanSummary, Patient, Visit } from "@/lib/types";
+import { formatScore, interpretScore } from "@/lib/outcomes";
+import type { ExercisePlanSummary, OutcomeMeasure, Patient, Visit } from "@/lib/types";
 
 export default function PatientPage() {
   const router = useRouter();
@@ -31,6 +42,8 @@ export default function PatientPage() {
   const [visitsError, setVisitsError] = useState<string | null>(null);
   const [plans, setPlans] = useState<ExercisePlanSummary[] | null>(null);
   const [plansError, setPlansError] = useState<string | null>(null);
+  const [outcomes, setOutcomes] = useState<OutcomeMeasure[] | null>(null);
+  const [outcomesError, setOutcomesError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -54,6 +67,12 @@ export default function PatientPage() {
           setPlans((await plansResponse.json()) as ExercisePlanSummary[]);
         } else {
           setPlansError("Nie udało się pobrać zestawów zaleceń.");
+        }
+        const outcomesResponse = await apiFetch(`/patients/${id}/outcomes`);
+        if (outcomesResponse.ok) {
+          setOutcomes((await outcomesResponse.json()) as OutcomeMeasure[]);
+        } else {
+          setOutcomesError("Nie udało się pobrać pomiarów.");
         }
       } catch {
         setError("Brak połączenia z API.");
@@ -303,6 +322,88 @@ export default function PatientPage() {
                         <TableCell>{plan._count.items}</TableCell>
                       </TableRow>
                     ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Kwestionariusze niepełnosprawności</CardTitle>
+              <CardAction className="flex gap-2">
+                <Button size="sm" variant="outline" asChild>
+                  <Link href={`/patients/${patient.id}/outcomes/odi`}>
+                    <ClipboardList />
+                    ODI
+                  </Link>
+                </Button>
+                <Button size="sm" variant="outline" asChild>
+                  <Link href={`/patients/${patient.id}/outcomes/ndi`}>
+                    <ClipboardList />
+                    NDI
+                  </Link>
+                </Button>
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              {outcomesError ? (
+                <ErrorMessage message={outcomesError} />
+              ) : outcomes === null ? (
+                <LoadingRows />
+              ) : outcomes.length === 0 ? (
+                <EmptyMessage>
+                  Brak pomiarów. ODI służy do bólu lędźwi, NDI do bólu szyi.
+                </EmptyMessage>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Kwestionariusz</TableHead>
+                      <TableHead>Wynik</TableHead>
+                      <TableHead className="hidden md:table-cell">Interpretacja</TableHead>
+                      <TableHead>Zmiana</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {outcomes
+                      .map((measure, index) => {
+                        // zmiana wzgledem poprzedniego pomiaru tym samym kwestionariuszem
+                        const previous = outcomes
+                          .slice(0, index)
+                          .filter((other) => other.type === measure.type)
+                          .at(-1);
+                        return { measure, change: previous ? measure.score - previous.score : null };
+                      })
+                      .reverse()
+                      .map(({ measure, change }) => (
+                        <TableRow key={measure.id}>
+                          <TableCell className="tabular-nums">
+                            {formatDate(measure.createdAt)}
+                          </TableCell>
+                          <TableCell>{measure.type}</TableCell>
+                          <TableCell className="font-medium tabular-nums">
+                            {formatScore(measure.type, measure.score)}
+                          </TableCell>
+                          <TableCell className="hidden text-muted-foreground md:table-cell">
+                            {interpretScore(measure.type, measure.score)}
+                          </TableCell>
+                          <TableCell className="tabular-nums">
+                            {change === null || change === 0 ? (
+                              <span className="text-muted-foreground">-</span>
+                            ) : change < 0 ? (
+                              <span className="inline-flex items-center gap-1 text-primary">
+                                <ArrowDown className="size-4" aria-label="poprawa" />
+                                {change}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-destructive">
+                                <ArrowUp className="size-4" aria-label="pogorszenie" />+{change}
+                              </span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
                   </TableBody>
                 </Table>
               )}

@@ -115,6 +115,7 @@ export type AuditAction =
   | "PATIENT_CREATED"
   | "PATIENT_UPDATED"
   | "PATIENT_ARCHIVED"
+  | "PATIENT_EXPORTED"
   | "VISIT_VIEWED"
   | "VISIT_CREATED"
   | "VISIT_UPDATED"
@@ -123,6 +124,7 @@ export type AuditAction =
   | "PLAN_CREATED"
   | "PLAN_PDF_DOWNLOADED"
   | "PLAN_EMAILED"
+  | "OUTCOME_RECORDED"
   | "THERAPIST_CREATED"
   | "THERAPIST_DEACTIVATED"
   | "THERAPIST_RESTORED";
@@ -134,4 +136,15 @@ export interface AuditEvent {
   createdAt: string;
   actor: { fullName: string };
   patient: { id: string; firstName: string; lastName: string } | null;
+}
+
+export type OutcomeType = "ODI" | "NDI";
+
+export interface OutcomeMeasure {
+  id: string;
+  type: OutcomeType;
+  answers: number[];
+  score: number;
+  createdAt: string;
+  therapist: { fullName: string };
 }

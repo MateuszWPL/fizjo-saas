@@ -57,4 +57,7 @@
   body {
     @apply bg-background text-foreground;
   }
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 22%, transparent);
+  }
 }

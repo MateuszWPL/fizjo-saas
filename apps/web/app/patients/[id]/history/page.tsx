@@ -3,11 +3,9 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { ArrowDown, ArrowUp } from "lucide-react";
-import { BodyMap } from "@/components/body-map";
 import { EmptyMessage, ErrorMessage, LoadingRows } from "@/components/load-state";
 import { PageHeader } from "@/components/page-header";
-import { PainLegend } from "@/components/pain-legend";
-import { Button } from "@/components/ui/button";
+import { PainComparison } from "@/components/pain-comparison";
 import {
   Card,
   CardContent,
@@ -24,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { muscleGroupLabels } from "@/lib/body-map/muscle-groups";
-import { fillsFromMarkers, painColor, painTextColor } from "@/lib/body-map/pain-scale";
+import { painColor, painTextColor } from "@/lib/body-map/pain-scale";
 import { apiFetch } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import type { PainHistoryVisit, Patient } from "@/lib/types";
@@ -33,7 +31,6 @@ export default function PainHistoryPage() {
   const { id } = useParams<{ id: string }>();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [history, setHistory] = useState<PainHistoryVisit[] | null>(null);
-  const [selectedVisitId, setSelectedVisitId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -50,11 +47,7 @@ export default function PainHistoryPage() {
           setError("Nie udało się pobrać historii bólu.");
           return;
         }
-        const visits = (await historyResponse.json()) as PainHistoryVisit[];
-        setHistory(visits);
-        if (visits.length > 0) {
-          setSelectedVisitId(visits[visits.length - 1].id);
-        }
+        setHistory((await historyResponse.json()) as PainHistoryVisit[]);
       } catch {
         setError("Brak połączenia z API.");
       }
@@ -81,8 +74,6 @@ export default function PainHistoryPage() {
     );
   }
 
-  const selectedVisit = history.find((visit) => visit.id === selectedVisitId);
-  const groupFills = fillsFromMarkers(selectedVisit?.bodyMarkers ?? []);
   const allGroups = [...new Set(history.flatMap((v) => v.bodyMarkers.map((m) => m.muscleGroup)))];
   allGroups.sort((a, b) => muscleGroupLabels[a].localeCompare(muscleGroupLabels[b], "pl"));
 
@@ -96,7 +87,7 @@ export default function PainHistoryPage() {
         title={title}
         backHref={`/patients/${id}`}
         backLabel="Karta pacjenta"
-        description="Mapa bólu z wybranej wizyty i zmiana natężenia w czasie."
+        description="Porównanie map bólu z dwóch wizyt i zmiana natężenia w czasie."
       />
       {history.length === 0 ? (
         <Card>
@@ -108,27 +99,13 @@ export default function PainHistoryPage() {
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Mapa bólu z wizyty</CardTitle>
-              <CardDescription>Wybierz datę wizyty.</CardDescription>
+              <CardTitle>Porównanie wizyt</CardTitle>
+              <CardDescription>
+                Wybierz dwie wizyty, żeby zobaczyć, jak zmienił się ból w każdym obszarze.
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-wrap gap-2">
-                {history.map((visit) => (
-                  <Button
-                    key={visit.id}
-                    size="sm"
-                    variant={visit.id === selectedVisitId ? "default" : "outline"}
-                    onClick={() => setSelectedVisitId(visit.id)}
-                  >
-                    {formatDate(visit.visitDate)}
-                  </Button>
-                ))}
-              </div>
-              <div className="flex flex-wrap justify-center gap-6">
-                <BodyMap view="front" groupFills={groupFills} />
-                <BodyMap view="back" groupFills={groupFills} />
-              </div>
-              <PainLegend />
+            <CardContent>
+              <PainComparison visits={history} />
             </CardContent>
           </Card>
           <Card>

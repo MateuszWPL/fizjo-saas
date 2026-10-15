@@ -3,10 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { UserPlus, Users } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import { EmptyMessage, ErrorMessage, LoadingRows } from "@/components/load-state";
 import { PageHeader } from "@/components/page-header";
-import { VisitStatusBadge } from "@/components/visit-status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -21,8 +20,44 @@ import { apiFetch } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import type { Me, RecentVisit } from "@/lib/types";
 
-export default function DashboardPage() {
+function VisitTable({ visits }: { visits: RecentVisit[] }) {
   const router = useRouter();
+  return (
+    // stale szerokosci, zeby kolumny obu tabel na pulpicie byly wyrownane
+    <Table className="table-fixed">
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-28">Data</TableHead>
+          <TableHead className="w-48">Pacjent</TableHead>
+          <TableHead className="hidden sm:table-cell">Rozpoznanie</TableHead>
+          <TableHead className="hidden w-48 md:table-cell">Terapeuta</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {visits.map((visit) => (
+          <TableRow
+            key={visit.id}
+            className="cursor-pointer"
+            onClick={() => router.push(`/visits/${visit.id}`)}
+          >
+            <TableCell className="tabular-nums">{formatDate(visit.visitDate)}</TableCell>
+            <TableCell className="font-medium">
+              <Link href={`/visits/${visit.id}`} className="hover:underline">
+                {visit.patient.lastName} {visit.patient.firstName}
+              </Link>
+            </TableCell>
+            <TableCell className="hidden truncate text-muted-foreground sm:table-cell">
+              {visit.diagnosis ?? "-"}
+            </TableCell>
+            <TableCell className="hidden md:table-cell">{visit.therapist.fullName}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
+export default function DashboardPage() {
   const [me, setMe] = useState<Me | null>(null);
   const [visits, setVisits] = useState<RecentVisit[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,85 +88,70 @@ export default function DashboardPage() {
     load();
   }, []);
 
-  const openVisits = visits?.filter((visit) => !visit.closedAt).length ?? 0;
+  const openVisits = visits?.filter((visit) => !visit.closedAt) ?? [];
+  const closedVisits = visits?.filter((visit) => visit.closedAt) ?? [];
 
   return (
-    <main className="mx-auto max-w-6xl p-6">
+    <main className="mx-auto max-w-6xl space-y-6 p-6">
       <PageHeader
         title={me ? `Dzień dobry, ${me.fullName}` : "Pulpit"}
         description={
-          visits && openVisits > 0
-            ? `Otwarte wizyty wśród ostatnich: ${openVisits}. Zamknięta wizyta staje się wpisem niemodyfikowalnym.`
-            : "Ostatnia aktywność w gabinecie."
+          visits === null
+            ? "Ostatnia aktywność w gabinecie."
+            : openVisits.length > 0
+              ? `Wizyty do zamknięcia: ${openVisits.length}.`
+              : "Wszystkie ostatnie wizyty są zamknięte."
         }
         actions={
-          <>
-            <Button variant="outline" asChild>
-              <Link href="/patients">
-                <Users />
-                Lista pacjentów
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link href="/patients/new">
-                <UserPlus />
-                Nowy pacjent
-              </Link>
-            </Button>
-          </>
+          <Button asChild>
+            <Link href="/patients/new">
+              <UserPlus />
+              Nowy pacjent
+            </Link>
+          </Button>
         }
       />
       {error ? (
         <ErrorMessage message={error} />
-      ) : (
+      ) : visits === null ? (
+        <LoadingRows rows={6} />
+      ) : visits.length === 0 ? (
         <Card>
-          <CardHeader>
-            <CardTitle>Ostatnie wizyty</CardTitle>
-            <CardDescription>Kliknij wiersz, żeby otworzyć kartę wizyty.</CardDescription>
-          </CardHeader>
           <CardContent>
-            {visits === null ? (
-              <LoadingRows />
-            ) : visits.length === 0 ? (
-              <EmptyMessage>
-                W gabinecie nie ma jeszcze wizyt. Zacznij od dodania pacjenta.
-              </EmptyMessage>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Pacjent</TableHead>
-                    <TableHead>Rozpoznanie</TableHead>
-                    <TableHead>Terapeuta</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {visits.map((visit) => (
-                    <TableRow
-                      key={visit.id}
-                      className="cursor-pointer"
-                      onClick={() => router.push(`/visits/${visit.id}`)}
-                    >
-                      <TableCell>{formatDate(visit.visitDate)}</TableCell>
-                      <TableCell className="font-medium">
-                        {visit.patient.lastName} {visit.patient.firstName}
-                      </TableCell>
-                      <TableCell className="max-w-64 truncate text-muted-foreground">
-                        {visit.diagnosis ?? "-"}
-                      </TableCell>
-                      <TableCell>{visit.therapist.fullName}</TableCell>
-                      <TableCell>
-                        <VisitStatusBadge closedAt={visit.closedAt} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
+            <EmptyMessage>
+              W gabinecie nie ma jeszcze wizyt. Zacznij od dodania pacjenta.
+            </EmptyMessage>
           </CardContent>
         </Card>
+      ) : (
+        <>
+          {openVisits.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Do zamknięcia</CardTitle>
+                <CardDescription>
+                  Otwarte wizyty można jeszcze edytować. Po zamknięciu wpis staje się
+                  niemodyfikowalny.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <VisitTable visits={openVisits} />
+              </CardContent>
+            </Card>
+          )}
+          <Card>
+            <CardHeader>
+              <CardTitle>Ostatnio zamknięte</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {closedVisits.length === 0 ? (
+                <EmptyMessage>Nie ma jeszcze zamkniętych wizyt.</EmptyMessage>
+              ) : (
+                <VisitTable visits={closedVisits} />
+              )}
+            </CardContent>
+          </Card>
+        </>
       )}
     </main>
   );

@@ -18,7 +18,7 @@ interface ConfirmButtonProps {
   title: string;
   description: string;
   confirmLabel: string;
-  destructive?: boolean;
+  variant?: "default" | "outline" | "destructive";
   disabled?: boolean;
   onConfirm: () => void;
 }
@@ -28,14 +28,15 @@ export function ConfirmButton({
   title,
   description,
   confirmLabel,
-  destructive,
+  variant = "outline",
   disabled,
   onConfirm,
 }: ConfirmButtonProps) {
+  const destructive = variant === "destructive";
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant={destructive ? "destructive" : "outline"} disabled={disabled}>
+        <Button variant={variant} disabled={disabled}>
           {label}
         </Button>
       </AlertDialogTrigger>

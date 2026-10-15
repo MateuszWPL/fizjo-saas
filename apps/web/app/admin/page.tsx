@@ -190,7 +190,7 @@ export default function AdminPage() {
                             }
                             description={`Konto: ${therapist.fullName}.`}
                             confirmLabel={therapist.active ? "Dezaktywuj" : "Przywróć"}
-                            destructive={therapist.active}
+                            variant={therapist.active ? "destructive" : "outline"}
                             onConfirm={() => toggleActive(therapist)}
                           />
                         )}

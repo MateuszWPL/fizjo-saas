@@ -86,7 +86,7 @@ export default function EditExercisePage() {
               title="Usunąć ćwiczenie?"
               description="Ćwiczenie zniknie z bazy gabinetu. Nie da się usunąć ćwiczenia, które jest w wydanym zestawie zaleceń."
               confirmLabel="Usuń"
-              destructive
+              variant="destructive"
               onConfirm={remove}
             />
           )

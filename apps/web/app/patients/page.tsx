@@ -84,9 +84,9 @@ export default function PatientsPage() {
                 <TableRow>
                   <TableHead>Nazwisko i imię</TableHead>
                   <TableHead>Wiek</TableHead>
-                  <TableHead>PESEL</TableHead>
-                  <TableHead>Telefon</TableHead>
-                  <TableHead>E-mail</TableHead>
+                  <TableHead className="hidden sm:table-cell">PESEL</TableHead>
+                  <TableHead className="hidden md:table-cell">Telefon</TableHead>
+                  <TableHead className="hidden lg:table-cell">E-mail</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -97,7 +97,9 @@ export default function PatientsPage() {
                     onClick={() => router.push(`/patients/${patient.id}`)}
                   >
                     <TableCell className="font-medium">
-                      {patient.lastName} {patient.firstName}
+                      <Link href={`/patients/${patient.id}`} className="hover:underline">
+                        {patient.lastName} {patient.firstName}
+                      </Link>
                     </TableCell>
                     <TableCell>
                       {patient.birthDate ? (
@@ -108,9 +110,15 @@ export default function PatientsPage() {
                         "-"
                       )}
                     </TableCell>
-                    <TableCell className="tabular-nums">{patient.pesel ?? "-"}</TableCell>
-                    <TableCell className="tabular-nums">{patient.phone ?? "-"}</TableCell>
-                    <TableCell className="text-muted-foreground">{patient.email ?? "-"}</TableCell>
+                    <TableCell className="hidden tabular-nums sm:table-cell">
+                      {patient.pesel ?? "-"}
+                    </TableCell>
+                    <TableCell className="hidden tabular-nums md:table-cell">
+                      {patient.phone ?? "-"}
+                    </TableCell>
+                    <TableCell className="hidden text-muted-foreground lg:table-cell">
+                      {patient.email ?? "-"}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

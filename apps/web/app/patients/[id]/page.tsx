@@ -139,7 +139,7 @@ export default function PatientPage() {
               title="Zarchiwizować pacjenta?"
               description="Pacjent zniknie z listy, ale jego dokumentacja zostanie zachowana."
               confirmLabel="Archiwizuj"
-              destructive
+              variant="destructive"
               onConfirm={archive}
             />
           </>
@@ -193,7 +193,7 @@ export default function PatientPage() {
                     <TableRow>
                       <TableHead>Data</TableHead>
                       <TableHead>Rozpoznanie</TableHead>
-                      <TableHead>Terapeuta</TableHead>
+                      <TableHead className="hidden md:table-cell">Terapeuta</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -204,14 +204,20 @@ export default function PatientPage() {
                         className="cursor-pointer"
                         onClick={() => router.push(`/visits/${visit.id}`)}
                       >
-                        <TableCell>{formatDate(visit.visitDate)}</TableCell>
+                        <TableCell className="tabular-nums">
+                          <Link href={`/visits/${visit.id}`} className="hover:underline">
+                            {formatDate(visit.visitDate)}
+                          </Link>
+                        </TableCell>
                         <TableCell className="max-w-56 truncate">
                           {visit.icd10Code && (
                             <span className="mr-1 font-medium">{visit.icd10Code}</span>
                           )}
                           <span className="text-muted-foreground">{visit.diagnosis ?? "-"}</span>
                         </TableCell>
-                        <TableCell>{visit.therapist.fullName}</TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {visit.therapist.fullName}
+                        </TableCell>
                         <TableCell>
                           <VisitStatusBadge closedAt={visit.closedAt} />
                         </TableCell>
@@ -257,7 +263,11 @@ export default function PatientPage() {
                         className="cursor-pointer"
                         onClick={() => router.push(`/plans/${plan.id}`)}
                       >
-                        <TableCell>{formatDate(plan.createdAt)}</TableCell>
+                        <TableCell className="tabular-nums">
+                          <Link href={`/plans/${plan.id}`} className="hover:underline">
+                            {formatDate(plan.createdAt)}
+                          </Link>
+                        </TableCell>
                         <TableCell>{plan.therapist.fullName}</TableCell>
                         <TableCell>{plan._count.items}</TableCell>
                       </TableRow>

@@ -150,7 +150,7 @@ export default function PlanPage() {
               title="Usunąć zestaw zaleceń?"
               description="Zestaw zniknie z karty pacjenta."
               confirmLabel="Usuń"
-              destructive
+              variant="destructive"
               onConfirm={remove}
             />
           </>

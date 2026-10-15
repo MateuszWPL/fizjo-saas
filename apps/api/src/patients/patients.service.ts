@@ -10,6 +10,7 @@ import { ProfilesService } from '../profiles/profiles.service.js';
 import type { CreatePatientDto } from './dto/create-patient.dto.js';
 import type { UpdatePatientDto } from './dto/update-patient.dto.js';
 import { MUSCLE_GROUP_LABELS } from '../body-markers/muscle-groups.js';
+import { outcomeScore } from '../outcomes/outcome-score.js';
 import { renderDocumentationPdf } from './documentation-pdf.js';
 import { isValidPesel } from './pesel.js';
 
@@ -127,6 +128,10 @@ export class PatientsService {
         where: { id, clinicId },
         include: {
           clinic: { select: { name: true } },
+          outcomeMeasures: {
+            orderBy: { createdAt: 'asc' },
+            include: { therapist: { select: { fullName: true } } },
+          },
           visits: {
             orderBy: [{ visitDate: 'asc' }, { createdAt: 'asc' }],
             include: {
@@ -158,6 +163,15 @@ export class PatientsService {
         phone: patient.phone,
         email: patient.email,
       },
+      outcomes: patient.outcomeMeasures.map((measure) => {
+        const score = outcomeScore(measure.type, measure.answers);
+        return {
+          date: measure.createdAt,
+          type: measure.type,
+          score: measure.type === 'ODI' ? `${score}%` : `${score}/50 pkt`,
+          therapist: measure.therapist.fullName,
+        };
+      }),
       visits: patient.visits.map((visit) => ({
         visitDate: visit.visitDate,
         closedAt: visit.closedAt,

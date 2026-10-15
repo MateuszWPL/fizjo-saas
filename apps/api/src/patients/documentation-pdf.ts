@@ -14,6 +14,7 @@ export interface DocumentationPdfData {
     phone: string | null;
     email: string | null;
   };
+  outcomes: { date: Date; type: string; score: string; therapist: string }[];
   visits: {
     visitDate: Date;
     closedAt: Date | null;
@@ -85,6 +86,17 @@ export function renderDocumentationPdf(
       doc.text(`${label}: ${value ?? '-'}`);
     }
     doc.moveDown();
+
+    if (data.outcomes.length > 0) {
+      doc.font('bold').fontSize(12).text('Kwestionariusze niepełnosprawności');
+      doc.font('regular').fontSize(10);
+      for (const outcome of data.outcomes) {
+        doc.text(
+          `${formatDate(outcome.date)}, ${outcome.type}: ${outcome.score} (${outcome.therapist})`,
+        );
+      }
+      doc.moveDown();
+    }
 
     doc.font('bold').fontSize(12).text(`Wizyty (${data.visits.length})`);
     if (data.visits.length === 0) {

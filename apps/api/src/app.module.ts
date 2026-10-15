@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { BodyMarkersModule } from './body-markers/body-markers.module.js';
 import { ExercisePlansModule } from './exercise-plans/exercise-plans.module.js';
 import { ExercisesModule } from './exercises/exercises.module.js';
+import { OutcomesModule } from './outcomes/outcomes.module.js';
 import { PatientsModule } from './patients/patients.module.js';
 import { VisitsModule } from './visits/visits.module.js';
 
@@ -18,6 +19,7 @@ import { VisitsModule } from './visits/visits.module.js';
     ExercisePlansModule,
     AdminModule,
     AuditModule,
+    OutcomesModule,
   ],
 })
 export class AppModule {}

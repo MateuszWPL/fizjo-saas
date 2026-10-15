@@ -17,6 +17,11 @@ enum Sex {
   MALE
 }
 
+enum OutcomeType {
+  ODI
+  NDI
+}
+
 enum AuditAction {
   PATIENT_VIEWED
   PATIENT_CREATED
@@ -31,6 +36,7 @@ enum AuditAction {
   PLAN_CREATED
   PLAN_PDF_DOWNLOADED
   PLAN_EMAILED
+  OUTCOME_RECORDED
   THERAPIST_CREATED
   THERAPIST_DEACTIVATED
   THERAPIST_RESTORED
@@ -98,43 +104,45 @@ model ExercisePlanItem {
 
 model Profile {
   // id jest rowne auth.users.id z Supabase, konto tworzy Supabase Auth
-  id            String           @id @db.Uuid
-  clinicId      String           @map("clinic_id") @db.Uuid
-  fullName      String           @map("full_name")
-  role          ProfileRole      @default(THERAPIST)
+  id              String           @id @db.Uuid
+  clinicId        String           @map("clinic_id") @db.Uuid
+  fullName        String           @map("full_name")
+  role            ProfileRole      @default(THERAPIST)
   // numer prawa wykonywania zawodu fizjoterapeuty (PWZFz)
-  licenseNumber String?          @map("license_number")
-  active        Boolean          @default(true)
-  createdAt     DateTime         @default(now()) @map("created_at")
-  clinic        Clinic           @relation(fields: [clinicId], references: [id])
-  visits        Visit[]
-  plans         ExercisePlan[]
-  amendments    VisitAmendment[]
-  auditEvents   AuditEvent[]
+  licenseNumber   String?          @map("license_number")
+  active          Boolean          @default(true)
+  createdAt       DateTime         @default(now()) @map("created_at")
+  clinic          Clinic           @relation(fields: [clinicId], references: [id])
+  visits          Visit[]
+  plans           ExercisePlan[]
+  amendments      VisitAmendment[]
+  auditEvents     AuditEvent[]
+  outcomeMeasures OutcomeMeasure[]
 
   @@index([clinicId])
   @@map("profiles")
 }
 
 model Patient {
-  id          String         @id @default(uuid()) @db.Uuid
-  clinicId    String         @map("clinic_id") @db.Uuid
-  firstName   String         @map("first_name")
-  lastName    String         @map("last_name")
-  birthDate   DateTime?      @map("birth_date") @db.Date
-  pesel       String?
-  sex         Sex?
-  address     String?
-  phone       String?
-  email       String?
-  notes       String?
-  archivedAt  DateTime?      @map("archived_at")
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt @map("updated_at")
-  clinic      Clinic         @relation(fields: [clinicId], references: [id])
-  visits      Visit[]
-  plans       ExercisePlan[]
-  auditEvents AuditEvent[]
+  id              String           @id @default(uuid()) @db.Uuid
+  clinicId        String           @map("clinic_id") @db.Uuid
+  firstName       String           @map("first_name")
+  lastName        String           @map("last_name")
+  birthDate       DateTime?        @map("birth_date") @db.Date
+  pesel           String?
+  sex             Sex?
+  address         String?
+  phone           String?
+  email           String?
+  notes           String?
+  archivedAt      DateTime?        @map("archived_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  clinic          Clinic           @relation(fields: [clinicId], references: [id])
+  visits          Visit[]
+  plans           ExercisePlan[]
+  auditEvents     AuditEvent[]
+  outcomeMeasures OutcomeMeasure[]
 
   @@unique([clinicId, pesel])
   @@index([clinicId])
@@ -215,4 +223,21 @@ model AuditEvent {
 
   @@index([clinicId, createdAt])
   @@map("audit_events")
+}
+
+// kwestionariusz niepelnosprawnosci wypelniony z pacjentem: ODI dla odcinka
+// ledzwiowego, NDI dla szyi. Pomiaru, tak jak wpisu w dokumentacji, sie nie zmienia
+model OutcomeMeasure {
+  id          String      @id @default(uuid()) @db.Uuid
+  patientId   String      @map("patient_id") @db.Uuid
+  therapistId String      @map("therapist_id") @db.Uuid
+  type        OutcomeType
+  // punkty 0-5 za kazde z 10 pytan, w kolejnosci z formularza
+  answers     Int[]
+  createdAt   DateTime    @default(now()) @map("created_at")
+  patient     Patient     @relation(fields: [patientId], references: [id])
+  therapist   Profile     @relation(fields: [therapistId], references: [id])
+
+  @@index([patientId])
+  @@map("outcome_measures")
 }

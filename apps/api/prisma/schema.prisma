@@ -17,13 +17,32 @@ enum Sex {
   MALE
 }
 
+enum AuditAction {
+  PATIENT_VIEWED
+  PATIENT_CREATED
+  PATIENT_UPDATED
+  PATIENT_ARCHIVED
+  VISIT_VIEWED
+  VISIT_CREATED
+  VISIT_UPDATED
+  VISIT_CLOSED
+  VISIT_AMENDED
+  PLAN_CREATED
+  PLAN_PDF_DOWNLOADED
+  PLAN_EMAILED
+  THERAPIST_CREATED
+  THERAPIST_DEACTIVATED
+  THERAPIST_RESTORED
+}
+
 model Clinic {
-  id        String     @id @default(uuid()) @db.Uuid
-  name      String
-  createdAt DateTime   @default(now()) @map("created_at")
-  profiles  Profile[]
-  patients  Patient[]
-  exercises Exercise[]
+  id          String       @id @default(uuid()) @db.Uuid
+  name        String
+  createdAt   DateTime     @default(now()) @map("created_at")
+  profiles    Profile[]
+  patients    Patient[]
+  exercises   Exercise[]
+  auditEvents AuditEvent[]
 
   @@map("clinics")
 }
@@ -90,29 +109,31 @@ model Profile {
   visits        Visit[]
   plans         ExercisePlan[]
   amendments    VisitAmendment[]
+  auditEvents   AuditEvent[]
 
   @@index([clinicId])
   @@map("profiles")
 }
 
 model Patient {
-  id         String         @id @default(uuid()) @db.Uuid
-  clinicId   String         @map("clinic_id") @db.Uuid
-  firstName  String         @map("first_name")
-  lastName   String         @map("last_name")
-  birthDate  DateTime?      @map("birth_date") @db.Date
-  pesel      String?
-  sex        Sex?
-  address    String?
-  phone      String?
-  email      String?
-  notes      String?
-  archivedAt DateTime?      @map("archived_at")
-  createdAt  DateTime       @default(now()) @map("created_at")
-  updatedAt  DateTime       @updatedAt @map("updated_at")
-  clinic     Clinic         @relation(fields: [clinicId], references: [id])
-  visits     Visit[]
-  plans      ExercisePlan[]
+  id          String         @id @default(uuid()) @db.Uuid
+  clinicId    String         @map("clinic_id") @db.Uuid
+  firstName   String         @map("first_name")
+  lastName    String         @map("last_name")
+  birthDate   DateTime?      @map("birth_date") @db.Date
+  pesel       String?
+  sex         Sex?
+  address     String?
+  phone       String?
+  email       String?
+  notes       String?
+  archivedAt  DateTime?      @map("archived_at")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  clinic      Clinic         @relation(fields: [clinicId], references: [id])
+  visits      Visit[]
+  plans       ExercisePlan[]
+  auditEvents AuditEvent[]
 
   @@unique([clinicId, pesel])
   @@index([clinicId])
@@ -174,4 +195,23 @@ model BodyMarker {
 
   @@unique([visitId, muscleGroup])
   @@map("body_markers")
+}
+
+// dziennik zdarzen do rozliczalnosci z RODO: kto i kiedy mial wglad
+// w dokumentacje albo ja zmienil. Wpisy tylko sie dopisuje, patrz migracja
+model AuditEvent {
+  id        String      @id @default(uuid()) @db.Uuid
+  clinicId  String      @map("clinic_id") @db.Uuid
+  actorId   String      @map("actor_id") @db.Uuid
+  action    AuditAction
+  patientId String?     @map("patient_id") @db.Uuid
+  // krotki opis tam, gdzie zdarzenie nie dotyczy pacjenta, np. nazwa konta terapeuty
+  details   String?
+  createdAt DateTime    @default(now()) @map("created_at")
+  clinic    Clinic      @relation(fields: [clinicId], references: [id])
+  actor     Profile     @relation(fields: [actorId], references: [id])
+  patient   Patient?    @relation(fields: [patientId], references: [id], onDelete: Restrict)
+
+  @@index([clinicId, createdAt])
+  @@map("audit_events")
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import bodyMapData from "@/lib/body-map/body-map-data.json";
 import { muscleGroupLabels, type BodyView } from "@/lib/body-map/muscle-groups";
 
@@ -20,13 +20,18 @@ const fills = {
 
 export function BodyMap({ view, groupFills, selectedGroup, onGroupClick }: BodyMapProps) {
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
+  // id musi byc unikalne, bo na stronie bywa kilka sylwetek naraz
+  const clipId = `contour-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const { viewBox, paths } = bodyMapData[view];
 
-  function fillFor(group: string | null) {
+  // podklady (patrz scripts/build-body-map.mjs) w spoczynku maja kolor konturu,
+  // zeby rysunek wygladal jak oryginal, a kolor dostaja dopiero razem z grupa
+  function fillFor(group: string | null, underlay: boolean) {
     if (!group) return fills.contour;
     const custom = groupFills[group];
     if (custom) return custom;
-    return group === hoveredGroup || group === selectedGroup ? fills.hovered : fills.base;
+    if (group === hoveredGroup || group === selectedGroup) return fills.hovered;
+    return underlay ? fills.contour : fills.base;
   }
 
   return (
@@ -38,12 +43,19 @@ export function BodyMap({ view, groupFills, selectedGroup, onGroupClick }: BodyM
         className="h-[280px] w-auto sm:h-[440px]"
         onMouseLeave={() => setHoveredGroup(null)}
       >
-        {paths.map(({ d, group }, i) => (
+        <defs>
+          {/* pierwsza sciezka to zawsze kontur sylwetki */}
+          <clipPath id={clipId}>
+            <path d={paths[0].d} />
+          </clipPath>
+        </defs>
+        {paths.map(({ d, group, underlay = false }, i) => (
           <path
             key={i}
             d={d}
-            fill={fillFor(group)}
-            stroke={group && group === selectedGroup ? "#44403c" : "#a09a8f"}
+            fill={fillFor(group, underlay)}
+            clipPath={underlay ? `url(#${clipId})` : undefined}
+            stroke={underlay ? "none" : group && group === selectedGroup ? "#44403c" : "#a09a8f"}
             strokeWidth={group && group === selectedGroup ? 1 : 0.4}
             className={!group ? "pointer-events-none" : onGroupClick ? "cursor-pointer" : ""}
             onMouseEnter={group ? () => setHoveredGroup(group) : undefined}

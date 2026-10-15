@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Activity } from "lucide-react";
 import { ErrorMessage } from "@/components/load-state";
+import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -34,10 +34,10 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center p-6">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <span className="mb-2 flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Activity className="size-5" />
-          </span>
-          <CardTitle className="text-xl">Fizjo</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <Logo className="h-8 w-auto" />
+            Fizjo
+          </CardTitle>
           <CardDescription>Dokumentacja wizyt gabinetu fizjoterapii.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -47,6 +47,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
+                autoComplete="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -57,6 +58,7 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
+                autoComplete="current-password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

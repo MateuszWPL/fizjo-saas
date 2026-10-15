@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Activity, Building2, Dumbbell, LayoutDashboard, LogOut, Users } from "lucide-react";
+import { Building2, Dumbbell, LayoutDashboard, LogOut, Users } from "lucide-react";
+import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
@@ -49,20 +50,19 @@ export function AppHeader() {
   ];
 
   return (
-    <header className="sticky top-0 z-10 border-b bg-card/95 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-6">
-        <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Activity className="size-4" />
-          </span>
-          {me.clinic.name}
+    <header className="sticky top-0 z-10 border-b bg-card">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2 sm:px-6">
+        <Link href="/" className="flex min-w-0 items-center gap-2 font-semibold">
+          <Logo className="h-7 w-auto shrink-0" />
+          <span className="truncate">{me.clinic.name}</span>
         </Link>
-        <nav className="flex items-center gap-1">
+        {/* na telefonie menu schodzi do drugiego wiersza i przewija sie w poziomie */}
+        <nav className="order-last -mx-1 flex w-full items-center gap-1 overflow-x-auto md:order-none md:mx-0 md:w-auto">
           {links.map(({ href, label, icon: Icon }) => {
             const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
             return (
               <Button key={href} variant={active ? "secondary" : "ghost"} size="sm" asChild>
-                <Link href={href}>
+                <Link href={href} aria-current={active ? "page" : undefined}>
                   <Icon />
                   {label}
                 </Link>
@@ -71,7 +71,7 @@ export function AppHeader() {
           })}
         </nav>
         <div className="ml-auto flex items-center gap-3 text-sm">
-          <span className="text-muted-foreground">{me.fullName}</span>
+          <span className="hidden text-muted-foreground lg:inline">{me.fullName}</span>
           <Button variant="ghost" size="sm" onClick={logout}>
             <LogOut />
             Wyloguj
